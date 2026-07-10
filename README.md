@@ -50,7 +50,7 @@ the AppleScript adapters and Webamp rendering on a real Mac with a display.
 | M0 | Desktop-control adapters for Spotify.app and Music.app | code done, needs macOS verification |
 | M1 | Swift ScreenCaptureKit sidecar to PCM ring buffer to live FFT | not started |
 | M2 | Electron shell, Webamp embedded, adapters wired to transport, marquee, playlist | code done, needs display verification |
-| M3 | Classic vis window (viscolor.txt aware) and detachable Butterchurn | in progress: classic vis + viscolor parser done, Butterchurn pending |
+| M3 | Classic vis window (viscolor.txt aware) and detachable Butterchurn | code done, needs display verification |
 | M4 | Settings, onboarding, skin drag-drop, packaging, notarization: v1 | not started |
 | M5+ | API mode: castLabs ECS spike, Web Playback SDK, MusicKit JS | later, optional |
 
@@ -61,8 +61,10 @@ parser with the canonical default palette, the sidecar wire protocol and
 process manager with a mock sidecar (bars move on any machine), the
 Electron shell with IPC transport chain and Webamp media backend, the
 classic vis deck (pixel-authentic blocks, click to toggle spectrum and
-scope), the feedback button, the complete Spotify PKCE auth flow for API
-mode, and the MusicKit token minting script.
+scope), the detachable Milkdrop window (Butterchurn fed raw loopback PCM,
+245 bundled presets, auto-cycling, fullscreen), the feedback button, the
+complete Spotify PKCE auth flow for API mode, and the MusicKit token
+minting script.
 
 ## Repo layout
 

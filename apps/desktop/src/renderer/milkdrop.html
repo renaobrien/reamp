@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data: blob:" />
+    <title>Reamp Milkdrop</title>
+    <style>
+      body {
+        margin: 0;
+        height: 100vh;
+        overflow: hidden;
+        background: #000;
+        cursor: none;
+      }
+      body:hover { cursor: default; }
+      #milkdrop {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+      #preset-name {
+        position: fixed;
+        left: 16px;
+        bottom: 12px;
+        color: #00e5b0;
+        font: 12px/1.4 "Menlo", "Consolas", monospace;
+        text-shadow: 0 0 6px #000;
+        opacity: 0;
+        transition: opacity 0.6s;
+        pointer-events: none;
+      }
+      #preset-name.visible { opacity: 1; }
+    </style>
+  </head>
+  <body>
+    <canvas id="milkdrop"></canvas>
+    <div id="preset-name"></div>
+    <script type="module" src="./milkdrop.ts"></script>
+  </body>
+</html>

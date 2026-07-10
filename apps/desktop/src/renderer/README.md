@@ -18,6 +18,12 @@ What lives here:
   `@reamp/skins` (canonical default until skins load their own).
 - `main.ts` + `index.html`: the deck layout (Webamp above, vis deck
   below), fallback transport controls, source switcher, readout.
+- `milkdrop.ts` + `milkdrop.html`: the detachable Milkdrop window.
+  Butterchurn created with a null AudioContext and fed raw loopback PCM
+  as 128-centered byte arrays per frame (verified against the shipped
+  butterchurn@2.6.7 bundle; declarations in `types/butterchurn.d.ts`).
+  245 presets (base + extra packs, merged), space/N/P/R navigation, F or
+  double-click for fullscreen, 30s auto-advance via `preset-cycler.ts`.
 
 Rules that bind this directory:
 

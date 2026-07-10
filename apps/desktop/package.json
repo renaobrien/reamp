@@ -16,6 +16,8 @@
     "@reamp/adapters": "workspace:*",
     "@reamp/skins": "workspace:*",
     "@reamp/vis-engine": "workspace:*",
+    "butterchurn": "^2.6.7",
+    "butterchurn-presets": "^2.4.7",
     "webamp": "^2.3.1"
   },
   "devDependencies": {

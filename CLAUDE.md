@@ -78,11 +78,13 @@ live FFT, M2 Electron shell + Webamp + adapters wired, M3 vis windows
 (classic + Butterchurn), M4 ship v1 (settings, packaging, notarization),
 M5+ optional API mode (ECS spike, Web Playback SDK, MusicKit JS).
 
-Current state: M2 code-complete, pending on-device verification.
+Current state: M3 code-complete, pending on-device verification.
 Desktop-control adapters, the IPC transport chain (sandboxed renderer,
 typed preload bridge, AdapterHost), the Webamp host with the custom
 media backend (verified against webamp@2.3.1 shipped types), vis math
 plus peak caps and the viscolor parser, the classic vis deck, the
-sidecar manager with a mock sidecar, the feedback button, and the
-API-mode auth flow are all real and tested. Hardware-bound remainder:
-the Swift SCK binary (M1), and first run on a Mac with a display.
+detachable Milkdrop window (Butterchurn on raw loopback PCM, 245
+presets), the sidecar manager with a mock sidecar, the feedback button,
+and the API-mode auth flow are all real and tested. Hardware-bound
+remainder: the Swift SCK binary (M1), and first run on a Mac with a
+display.
