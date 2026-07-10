@@ -1,10 +1,11 @@
 /**
- * Minimal functional transport strip: proves the whole chain from button
- * to AppleScript before Webamp's pixels land. Replaced by the Webamp
- * host later in M2.
+ * Renderer entry: mounts Webamp, drives the classic vis deck, and keeps
+ * the fallback transport controls wired. Everything reaches the main
+ * process only through the `window.reamp` bridge.
  */
 import type { PlayerStateEvent, TransportCommand } from '../shared/ipc.js';
 import type { ReampApi } from '../preload.js';
+import { ClassicVis } from './classic-vis.js';
 
 declare global {
   interface Window {
@@ -37,15 +38,8 @@ function render(event: PlayerStateEvent): void {
   ($('playpause') as HTMLButtonElement).textContent = state.playing ? '❚❚' : '▶';
 }
 
-let playing = false;
-
-window.reamp.onPlayerState((event) => {
-  playing = event.state.playing;
-  render(event);
-});
-
-// Webamp mounts above the debug strip; the strip stays as a fallback
-// and diagnostic surface until Webamp is verified on a real display.
+// Webamp mounts into the main area; the deck below stays as the always-on
+// diagnostic surface until Webamp is verified on a real display.
 import('./webamp-host.js')
   .then(({ mountWebamp }) => mountWebamp(window.reamp, $('webamp-container')))
   .catch((err: unknown) => {
@@ -54,29 +48,14 @@ import('./webamp-host.js')
     )}`;
   });
 
-// Debug vis: 75 classic bars plus the oscilloscope trace. Colors follow
-// the stock viscolor palette vibe until real viscolor.txt support (M3).
-const canvas = $('vis') as HTMLCanvasElement;
-const ctx = canvas.getContext('2d')!;
-window.reamp.onVisFrame(({ levels, wave }) => {
-  const { width, height } = canvas;
-  ctx.clearRect(0, 0, width, height);
-  const barW = width / levels.length;
-  for (let i = 0; i < levels.length; i++) {
-    const h = levels[i]! * (height - 20);
-    const hue = 120 - (h / (height - 20)) * 120; // green floor to red peak
-    ctx.fillStyle = `hsl(${hue}, 90%, 50%)`;
-    ctx.fillRect(i * barW, height - h, Math.max(1, barW - 1), h);
-  }
-  ctx.strokeStyle = '#00e5b0';
-  ctx.beginPath();
-  for (let i = 0; i < wave.length; i++) {
-    const x = (i / (wave.length - 1)) * width;
-    const y = height / 2 + (wave[i]! * height) / 2.5;
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  ctx.stroke();
+const vis = new ClassicVis($('vis') as HTMLCanvasElement);
+window.reamp.onVisFrame((frame) => vis.render(frame));
+
+let playing = false;
+
+window.reamp.onPlayerState((event) => {
+  playing = event.state.playing;
+  render(event);
 });
 
 $('prev').addEventListener('click', () => send({ action: 'previous' }));

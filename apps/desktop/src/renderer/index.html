@@ -7,48 +7,124 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; media-src 'self' data: blob:" />
     <title>Reamp</title>
     <style>
+      :root {
+        --bg: #0b0b12;
+        --panel: #16161f;
+        --bevel-light: #3a3a4e;
+        --bevel-dark: #050508;
+        --accent: #00e5b0;
+        --dim: #5a5a72;
+        font-size: 11px;
+      }
+      * { box-sizing: border-box; }
       body {
         margin: 0;
         height: 100vh;
-        display: grid;
-        place-items: center;
-        background: #1a1a2e;
-        color: #00e5b0;
-        font: 14px/1.5 monospace;
+        display: flex;
+        flex-direction: column;
+        background:
+          radial-gradient(ellipse at 50% -20%, #1c1c2e 0%, var(--bg) 60%),
+          var(--bg);
+        color: var(--accent);
+        font-family: "Menlo", "Consolas", monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
         user-select: none;
+        overflow: hidden;
       }
-      main { text-align: center; }
-      #marquee { min-height: 1.5em; max-width: 480px; overflow: hidden; white-space: nowrap; }
-      button, select {
-        background: #16213e;
-        color: #00e5b0;
-        border: 1px solid #00e5b0;
-        font: inherit;
-        padding: 4px 14px;
-        margin: 2px;
+      /* frameless-friendly drag strip */
+      #titlebar {
+        height: 28px;
+        line-height: 28px;
+        flex: none;
+        text-align: center;
+        color: var(--dim);
+        font-size: 10px;
+        -webkit-app-region: drag;
+      }
+      #webamp-container {
+        flex: 1;
+        position: relative;
+        min-height: 0;
+      }
+      #deck {
+        flex: none;
+        margin: 0 8px 8px;
+        padding: 8px;
+        background: var(--panel);
+        border: 2px solid;
+        border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-template-rows: auto auto;
+        gap: 6px 12px;
+        align-items: center;
+      }
+      #vis {
+        grid-row: 1 / span 2;
+        width: 598px; /* 2x logical, pixel-doubled */
+        height: 98px;
+        max-width: 100%;
+        image-rendering: pixelated;
+        background: #000;
+        border: 2px solid;
+        border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
         cursor: pointer;
       }
-      #status { color: #557; min-height: 1.5em; }
-      #vis { background: #000; border: 1px solid #16213e; image-rendering: pixelated; }
+      #readout {
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        min-width: 0;
+      }
+      #marquee {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        color: var(--accent);
+      }
+      #time { color: var(--accent); flex: none; }
+      #controls { display: flex; gap: 6px; align-items: center; }
+      button, select {
+        -webkit-app-region: no-drag;
+        background: var(--panel);
+        color: var(--accent);
+        border: 2px solid;
+        border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+        font: inherit;
+        letter-spacing: inherit;
+        text-transform: inherit;
+        padding: 3px 12px;
+        cursor: pointer;
+      }
+      button:active {
+        border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+      }
+      #status { color: var(--dim); margin-left: auto; text-align: right; min-height: 1.2em; }
     </style>
   </head>
   <body>
-    <div id="webamp-container" style="position: absolute; inset: 0 0 40% 0"></div>
-    <main>
-      <p id="marquee">Reamp: transport strip (Webamp lands next)</p>
-      <p id="time">0:00 / 0:00</p>
-      <p>
-        <button id="prev">⏮</button>
-        <button id="playpause">▶</button>
-        <button id="next">⏭</button>
-        <select id="source">
+    <div id="titlebar">Reamp</div>
+    <div id="webamp-container"></div>
+    <section id="deck">
+      <canvas id="vis" title="Click to toggle spectrum / oscilloscope"></canvas>
+      <div id="readout">
+        <span id="marquee">Play something in Spotify or Music</span>
+        <span id="time">0:00 / 0:00</span>
+      </div>
+      <div id="controls">
+        <button id="prev" title="Previous">⏮</button>
+        <button id="playpause" title="Play/Pause">▶</button>
+        <button id="next" title="Next">⏭</button>
+        <select id="source" title="Source">
           <option value="spotify">Spotify</option>
           <option value="apple-music">Apple Music</option>
         </select>
-      </p>
-      <p id="status">waiting for player state…</p>
-      <canvas id="vis" width="450" height="120"></canvas>
-    </main>
+        <span id="status">waiting for player state…</span>
+      </div>
+    </section>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>

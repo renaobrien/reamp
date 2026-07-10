@@ -1,8 +1,12 @@
 # Reamp
 
+[![CI](https://github.com/renaobrien/reamp/actions/workflows/ci.yml/badge.svg)](https://github.com/renaobrien/reamp/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-00e5b0.svg)](LICENSE)
+
 A Winamp 2.9 style player that controls Spotify and Apple Music, with
-visualizations driven by the actual audio: classic spectrum and
-oscilloscope, plus Milkdrop via Butterchurn. macOS first.
+visualizations driven by the actual audio: the classic 75-band spectrum
+with falling peak caps, the oscilloscope, and Milkdrop via Butterchurn.
+macOS first. Zero setup: no API keys, no accounts, no Premium requirement.
 
 Load your 2003-era `.wsz` skin, hit play, and the bars move to the real music.
 
@@ -46,17 +50,19 @@ the AppleScript adapters and Webamp rendering on a real Mac with a display.
 | M0 | Desktop-control adapters for Spotify.app and Music.app | code done, needs macOS verification |
 | M1 | Swift ScreenCaptureKit sidecar to PCM ring buffer to live FFT | not started |
 | M2 | Electron shell, Webamp embedded, adapters wired to transport, marquee, playlist | code done, needs display verification |
-| M3 | Classic vis window (viscolor.txt aware) and detachable Butterchurn | not started |
+| M3 | Classic vis window (viscolor.txt aware) and detachable Butterchurn | in progress: classic vis + viscolor parser done, Butterchurn pending |
 | M4 | Settings, onboarding, skin drag-drop, packaging, notarization: v1 | not started |
 | M5+ | API mode: castLabs ECS spike, Web Playback SDK, MusicKit JS | later, optional |
 
 Working and tested today: both desktop-control adapters, the
 `SourceAdapter` contract, the vis-engine math (FFT, 75-band spectrum,
-oscilloscope, PCM ring buffer), the sidecar wire protocol and process
-manager with a mock sidecar (bars move on any machine), the Electron
-shell with IPC transport chain and Webamp media backend, the feedback
-button, the complete Spotify PKCE auth flow for API mode, and the
-MusicKit token minting script.
+falling peak caps, oscilloscope, PCM ring buffer), the viscolor.txt
+parser with the canonical default palette, the sidecar wire protocol and
+process manager with a mock sidecar (bars move on any machine), the
+Electron shell with IPC transport chain and Webamp media backend, the
+classic vis deck (pixel-authentic blocks, click to toggle spectrum and
+scope), the feedback button, the complete Spotify PKCE auth flow for API
+mode, and the MusicKit token minting script.
 
 ## Repo layout
 
@@ -66,8 +72,8 @@ apps/desktop/        Electron shell (M2)
   src/renderer/      Webamp host, adapters, vis, settings (M2)
   sidecar/           Swift ScreenCaptureKit audio capture (M1)
 packages/adapters/   SourceAdapter contract, desktop-control + API adapters
-packages/vis-engine/ FFT, spectrum bands, oscilloscope, PCM ring buffer
-packages/skins/      default skin and .wsz helpers
+packages/vis-engine/ FFT, spectrum bands, peak caps, oscilloscope, ring buffer
+packages/skins/      viscolor.txt parser, default palette, .wsz helpers
 scripts/             gen-apple-token.ts (offline MusicKit JWT, API mode)
 docs/                brief, PRD, tech spec
 ```

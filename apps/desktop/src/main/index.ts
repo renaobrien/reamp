@@ -72,9 +72,15 @@ function buildMenu(host: AdapterHost): Menu {
 
 function createWindow(): void {
   const win = new BrowserWindow({
-    width: 275 * 2,
-    height: 116 * 2, // classic main-window ratio, doubled
-    resizable: true,
+    width: 660,
+    height: 640,
+    minWidth: 640,
+    minHeight: 480,
+    title: 'Reamp',
+    backgroundColor: '#0b0b12',
+    // Clean chrome on macOS (traffic lights over our drag strip);
+    // ignored on other platforms.
+    titleBarStyle: 'hiddenInset',
     webPreferences: {
       preload: join(__dirname, '../preload.cjs'),
       contextIsolation: true,

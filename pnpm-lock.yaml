@@ -23,6 +23,9 @@ importers:
       '@reamp/adapters':
         specifier: workspace:*
         version: link:../../packages/adapters
+      '@reamp/skins':
+        specifier: workspace:*
+        version: link:../../packages/skins
       '@reamp/vis-engine':
         specifier: workspace:*
         version: link:../../packages/vis-engine
