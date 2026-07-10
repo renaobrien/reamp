@@ -4,6 +4,12 @@ Repo: `nostalgia` (docs use the working title "Reamp"). Full context lives
 in `docs/`. Read `reamp-technical-spec.md` before touching platform-adjacent
 code. This file is the distilled rulebook.
 
+Strategy update (July 2026, supersedes the spec where they conflict):
+v1 is desktop-control mode. Adapters drive the official Spotify and Music
+macOS apps via AppleScript; visuals come from loopback capture. The spec's
+API mode (Web Playback SDK, MusicKit JS, castLabs ECS) is an optional
+later mode; its auth plumbing is built and stays.
+
 ## Commands
 
 ```sh
@@ -56,18 +62,24 @@ pnpm test             # vitest across all packages + scripts
 - The `SourceAdapter` interface (`packages/adapters/src/types.ts`) is the
   contract everything hangs on. Change it in the spec first, then here,
   and keep it mirrorable to Swift (visionOS Phase 3 shares the shape).
-- The Electron dependency is the castLabs ECS fork, added at M0 with a
-  version pinned against their current releases. Do not add plain
-  `electron`.
+- Desktop-control mode needs no DRM playback, so v1 uses plain `electron`.
+  The castLabs ECS fork is only required if/when API-mode in-app playback
+  lands; pin its version against current releases at that time.
+- Desktop adapters take an injected `OsaRunner` so they stay testable
+  off-macOS. All AppleScript must go through the helpers in
+  `packages/adapters/src/desktop/osa.ts`: the not-running guard (never
+  auto-launch), control-character field separators (track names contain
+  commas), and `sanitizeForScript` for every interpolated value.
 
-## Milestones (spec §8)
+## Milestones (revised for the desktop-control pivot)
 
-M0 ECS/DRM spike, M1 capture sidecar + live FFT, M2 Webamp + Spotify
-adapter, M3 Apple Music parity, M4 vis windows (classic + Butterchurn),
-M5 ship v1 (settings, packaging, notarization), M6+ the P1 list.
+M0 desktop-control adapters (done, verify on macOS), M1 capture sidecar +
+live FFT, M2 Electron shell + Webamp + adapters wired, M3 vis windows
+(classic + Butterchurn), M4 ship v1 (settings, packaging, notarization),
+M5+ optional API mode (ECS spike, Web Playback SDK, MusicKit JS).
 
-Current state: pre-M0 scaffold. Contracts, vis math (FFT, spectrum bands,
-oscilloscope, ring buffer), the complete Spotify auth flow (PKCE, loopback,
-token exchange/refresh), the sidecar PCM wire protocol, and token minting
-are real and tested. Adapters and the Electron entry point are deliberate
-stubs until their milestone.
+Current state: pre-M1. Desktop-control adapters for Spotify.app and
+Music.app, contracts, vis math (FFT, spectrum bands, oscilloscope, ring
+buffer), the API-mode Spotify auth flow (PKCE, loopback, token
+exchange/refresh), the sidecar PCM wire protocol, and token minting are
+real and tested. The Electron entry point and Webamp host land at M2.
