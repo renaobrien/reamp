@@ -2,28 +2,35 @@
  * Electron entry point (plain Electron; the castLabs ECS fork is only
  * needed if API-mode in-app playback ever lands).
  *
- * This boots a placeholder window and the application menu, including the
- * Help > Send Feedback item that opens a prefilled issue on the upstream
- * repo. The Webamp host replaces the placeholder at M2; run tooling
- * (Vite + electron-builder) lands there too.
+ * Wires the desktop-control adapters into the IPC layer, boots the
+ * transport-strip window (Webamp host replaces it later in M2), and owns
+ * the application menu including Help > Send Feedback.
+ *
+ * Runs from the esbuild bundle: dist/main/index.cjs, preload at
+ * dist/preload.cjs, renderer at dist/renderer/.
  */
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { BrowserWindow, Menu, app, shell } from 'electron';
+import { MusicDesktopAdapter, SpotifyDesktopAdapter } from '@reamp/adapters';
+import { AdapterHost } from './adapter-host.js';
 import { collectSystemInfo, formatDiagnostics } from './diagnostics.js';
 import { buildFeedbackUrl } from './feedback.js';
+import { runOsaScript } from './osascript.js';
+import { broadcastToWindows, registerIpc } from './register-ipc.js';
 
-function feedbackUrl(): string {
+function feedbackUrl(host: AdapterHost): string {
   return buildFeedbackUrl({
     labels: ['feedback'],
     diagnostics: formatDiagnostics({
       appVersion: app.getVersion(),
       mode: 'desktop-control',
+      adapterStatus: [`active: ${host.getSource()}`],
       ...collectSystemInfo(),
     }),
   });
 }
 
-function buildMenu(): Menu {
+function buildMenu(host: AdapterHost): Menu {
   return Menu.buildFromTemplate([
     ...(process.platform === 'darwin' ? [{ role: 'appMenu' as const }] : []),
     { role: 'fileMenu' },
@@ -35,7 +42,7 @@ function buildMenu(): Menu {
       submenu: [
         {
           label: 'Send Feedback…',
-          click: () => void shell.openExternal(feedbackUrl()),
+          click: () => void shell.openExternal(feedbackUrl(host)),
         },
         {
           label: 'Winamp Skin Museum',
@@ -52,16 +59,26 @@ function createWindow(): void {
     height: 116 * 2, // classic main-window ratio, doubled
     resizable: true,
     webPreferences: {
+      preload: join(__dirname, '../preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
     },
   });
-  void win.loadFile(fileURLToPath(new URL('../renderer/index.html', import.meta.url)));
+  void win.loadFile(join(__dirname, '../renderer/index.html'));
 }
 
 void app.whenReady().then(() => {
-  Menu.setApplicationMenu(buildMenu());
+  const host = new AdapterHost({
+    adapters: {
+      spotify: new SpotifyDesktopAdapter({ runOsaScript }),
+      'apple-music': new MusicDesktopAdapter({ runOsaScript }),
+    },
+    initialSource: 'spotify',
+    broadcast: broadcastToWindows(() => BrowserWindow.getAllWindows()),
+  });
+  registerIpc(host);
+  Menu.setApplicationMenu(buildMenu(host));
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

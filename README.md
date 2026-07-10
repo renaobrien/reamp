@@ -44,7 +44,7 @@ UI yet, and the AppleScript adapters need verification on a real Mac.
 |---|---|---|
 | M0 | Desktop-control adapters for Spotify.app and Music.app | code done, needs macOS verification |
 | M1 | Swift ScreenCaptureKit sidecar to PCM ring buffer to live FFT | not started |
-| M2 | Electron shell, Webamp embedded, adapters wired to transport, marquee, playlist | not started |
+| M2 | Electron shell, Webamp embedded, adapters wired to transport, marquee, playlist | in progress: IPC transport chain done, Webamp pixels pending |
 | M3 | Classic vis window (viscolor.txt aware) and detachable Butterchurn | not started |
 | M4 | Settings, onboarding, skin drag-drop, packaging, notarization: v1 | not started |
 | M5+ | API mode: castLabs ECS spike, Web Playback SDK, MusicKit JS | later, optional |

@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'self'" />
     <title>Reamp</title>
     <style>
       body {
@@ -13,10 +13,37 @@
         background: #1a1a2e;
         color: #00e5b0;
         font: 14px/1.5 monospace;
+        user-select: none;
       }
+      main { text-align: center; }
+      #marquee { min-height: 1.5em; max-width: 480px; overflow: hidden; white-space: nowrap; }
+      button, select {
+        background: #16213e;
+        color: #00e5b0;
+        border: 1px solid #00e5b0;
+        font: inherit;
+        padding: 4px 14px;
+        margin: 2px;
+        cursor: pointer;
+      }
+      #status { color: #557; min-height: 1.5em; }
     </style>
   </head>
   <body>
-    <p>Reamp: Webamp host lands at M2. The llama is stretching.</p>
+    <main>
+      <p id="marquee">Reamp: transport strip (Webamp lands next)</p>
+      <p id="time">0:00 / 0:00</p>
+      <p>
+        <button id="prev">⏮</button>
+        <button id="playpause">▶</button>
+        <button id="next">⏭</button>
+        <select id="source">
+          <option value="spotify">Spotify</option>
+          <option value="apple-music">Apple Music</option>
+        </select>
+      </p>
+      <p id="status">waiting for player state…</p>
+    </main>
+    <script type="module" src="./main.ts"></script>
   </body>
 </html>

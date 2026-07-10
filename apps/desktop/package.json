@@ -3,12 +3,21 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "main": "src/main/index.ts",
+  "main": "dist/main/index.cjs",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:main": "esbuild src/main/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main/index.cjs && esbuild src/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs",
+    "build:renderer": "vite build",
+    "build": "pnpm build:main && pnpm build:renderer",
+    "start": "pnpm build && electron ."
+  },
+  "dependencies": {
+    "@reamp/adapters": "workspace:*"
   },
   "devDependencies": {
-    "electron": "^43.1.0"
+    "electron": "^43.1.0",
+    "esbuild": "^0.28.1",
+    "vite": "^8.1.4"
   }
 }
