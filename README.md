@@ -96,6 +96,12 @@ node --experimental-strip-types scripts/gen-apple-token.ts \
   --key ~/keys/AuthKey_ABC123DEFG.p8 --key-id ABC123DEFG --team-id TEAM456789
 ```
 
+## Feedback
+
+In the app: Help > Send Feedback opens a prefilled GitHub issue with a
+diagnostics block you can review before submitting. Outside the app:
+[open an issue](https://github.com/renaobrien/reamp/issues/new/choose).
+
 ## Skins
 
 Webamp loads classic `.wsz` skins natively. The Winamp base skin is Llama

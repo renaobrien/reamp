@@ -1,0 +1,11 @@
+name: Feedback
+description: Ideas, requests, skin problems, vibes
+labels: [feedback]
+body:
+  - type: textarea
+    id: feedback
+    attributes:
+      label: Feedback
+      description: What should Reamp do better?
+    validations:
+      required: true
