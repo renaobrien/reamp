@@ -17,7 +17,7 @@ export interface TokenSet {
 }
 
 export interface TokenClientOptions {
-  /** User-supplied client ID (BYO, Nostalgia never ships one). */
+  /** User-supplied client ID (BYO, Reamp never ships one). */
   clientId: string;
   tokenUrl?: string;
   /** Injectable for tests. */

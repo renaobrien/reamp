@@ -5,7 +5,7 @@
  *   node --experimental-strip-types scripts/gen-apple-token.ts \
  *     --key ~/keys/AuthKey_ABC123DEFG.p8 --key-id ABC123DEFG --team-id TEAM456789
  *
- * Paste the printed token into Nostalgia's settings pane (it lands in
+ * Paste the printed token into Reamp's settings pane (it lands in
  * Keychain via safeStorage). NEVER commit the .p8 or the token.
  */
 import { readFileSync } from 'node:fs';

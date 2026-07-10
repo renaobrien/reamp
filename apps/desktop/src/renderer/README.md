@@ -1,13 +1,13 @@
 # Renderer
 
 Chromium renderer: Webamp host (UI, `.wsz` skin engine, windows), the
-source-adapter layer (`@nostalgia/adapters`), the vis engine host
-(`@nostalgia/vis-engine` fed by the PCM SharedArrayBuffer), settings and
+source-adapter layer (`@reamp/adapters`), the vis engine host
+(`@reamp/vis-engine` fed by the PCM SharedArrayBuffer), settings and
 onboarding UI.
 
-Deliberately empty until Milestone 2. The ECS/DRM spike (M0) and capture
-pipeline (M1) come first, per the milestone order in
-`docs/reamp-technical-spec.md` §8. Renderer tooling will be Vite and
+Deliberately empty until Milestone 2. The desktop-control adapters (M0,
+done) and capture pipeline (M1) come first, per the revised milestones in
+CLAUDE.md. Renderer tooling will be Vite and
 TypeScript strict; `webamp`, `butterchurn`, and `butterchurn-presets` are
 added when the Webamp host lands.
 

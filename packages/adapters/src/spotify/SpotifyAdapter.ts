@@ -13,7 +13,7 @@ import type {
  *
  * Platform constraints this implementation must respect (spec §1):
  * - BYO client ID: the user creates their own app at developer.spotify.com.
- *   Nostalgia never ships a shared client ID. Dev mode: max 5 allowlisted users,
+ *   Reamp never ships a shared client ID. Dev mode: max 5 allowlisted users,
  *   owner must hold Premium.
  * - Auth is Authorization Code with PKCE; loopback redirect must use
  *   127.0.0.1, never `localhost`. The OAuth server lives in the Electron

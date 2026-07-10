@@ -58,7 +58,7 @@ export function clampVolume(pct: number): number {
 
 export class AppNotRunningError extends Error {
   constructor(appName: string) {
-    super(`${appName} is not running; launch it (or let Nostalgia launch it) first`);
+    super(`${appName} is not running; launch it (or let Reamp launch it) first`);
     this.name = 'AppNotRunningError';
   }
 }
