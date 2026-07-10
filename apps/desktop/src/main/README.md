@@ -16,6 +16,11 @@ What lives here already:
 - `oauth/pkce.ts` — PKCE pair generation + Spotify authorize URL builder
   (rejects `localhost`; loopback must be `127.0.0.1`).
 - `oauth/loopback-server.ts` — one-shot 127.0.0.1 callback server.
+- `oauth/token-client.ts` — PKCE code exchange + refresh (rotation-aware).
+- `oauth/authorize.ts` — the whole flow composed: PKCE → browser →
+  loopback → token exchange. Settings UI calls `authorizeSpotify()`.
+- `sidecar/pcm-stream.ts` — the sidecar wire protocol (JSON header line +
+  f32le PCM), incremental parser + encoders for the M1 mock sidecar.
 
 Still to come (M0–M2): ECS entry point, safeStorage vault, sidecar
-manager, window manager, token exchange/refresh client.
+process manager, window manager.

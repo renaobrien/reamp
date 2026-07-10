@@ -61,6 +61,8 @@ M0 ECS/DRM spike → M1 capture sidecar + live FFT → M2 Webamp + Spotify
 adapter → M3 Apple Music parity → M4 vis windows (classic + Butterchurn)
 → M5 ship v1 (settings, packaging, notarization) → M6+ P1 list.
 
-Current state: **pre-M0 scaffold.** Contracts, vis math, PKCE/loopback,
-and token minting are real and tested; adapters and the Electron entry
-point are deliberate stubs until their milestone.
+Current state: **pre-M0 scaffold.** Contracts, vis math (FFT, spectrum
+bands, oscilloscope, ring buffer), the complete Spotify auth flow
+(PKCE → loopback → token exchange/refresh), the sidecar PCM wire
+protocol, and token minting are real and tested; adapters and the
+Electron entry point are deliberate stubs until their milestone.
