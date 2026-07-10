@@ -1,0 +1,26 @@
+name: Bug report
+description: Something broke
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you do, what did you expect, what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: If you came here from the in-app Send Feedback button, this is prefilled. Otherwise paste your Reamp version, macOS version, and which service you were playing.
+      render: markdown
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      options:
+        - Desktop control (default)
+        - API mode
+    validations:
+      required: true
