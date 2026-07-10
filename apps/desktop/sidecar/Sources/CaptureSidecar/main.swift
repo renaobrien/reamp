@@ -1,4 +1,4 @@
-// Reamp capture sidecar (Milestone 1).
+// Nostalgia capture sidecar (Milestone 1).
 //
 // Captures system audio output with ScreenCaptureKit (SCStream audio,
 // macOS 13+) and streams Float32 PCM frames to the Electron main process

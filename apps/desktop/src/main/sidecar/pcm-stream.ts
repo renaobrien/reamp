@@ -2,7 +2,7 @@
  * Wire protocol between the Swift capture sidecar and the main process
  * (spec §2, M1): one JSON header line, then a raw little-endian Float32
  * PCM stream on stdout. The parser feeds decoded samples straight into
- * the PcmRingBuffer — PCM is never written to disk, never leaves the
+ * the PcmRingBuffer, PCM is never written to disk, never leaves the
  * process pair.
  *
  *   {"sampleRate":48000,"channels":1,"format":"f32le"}\n
@@ -25,7 +25,7 @@ export interface PcmStreamCallbacks {
 const NEWLINE = 0x0a;
 const MAX_HEADER_BYTES = 4096;
 
-/** Incremental parser — stdout chunk boundaries can split anything, even mid-float. */
+/** Incremental parser, stdout chunk boundaries can split anything, even mid-float. */
 export class PcmStreamParser {
   private readonly callbacks: PcmStreamCallbacks;
   private headerParsed = false;
@@ -46,7 +46,7 @@ export class PcmStreamParser {
       const nl = this.pending.indexOf(NEWLINE);
       if (nl === -1) {
         if (this.pending.length > MAX_HEADER_BYTES) {
-          throw new Error('PCM stream header exceeds 4KB — sidecar output is not the expected protocol');
+          throw new Error('PCM stream header exceeds 4KB, sidecar output is not the expected protocol');
         }
         return;
       }
@@ -89,12 +89,12 @@ function parseHeader(bytes: Uint8Array): PcmStreamHeader {
   return { sampleRate: h.sampleRate, channels: h.channels, format: 'f32le' };
 }
 
-/** Encode a header line — used by tests and the M1 mock sidecar. */
+/** Encode a header line, used by tests and the M1 mock sidecar. */
 export function encodePcmHeader(header: PcmStreamHeader): Uint8Array {
   return new TextEncoder().encode(`${JSON.stringify(header)}\n`);
 }
 
-/** Encode samples as f32le regardless of host endianness — tests / mock sidecar. */
+/** Encode samples as f32le regardless of host endianness, tests / mock sidecar. */
 export function encodePcmSamples(samples: ArrayLike<number>): Uint8Array {
   const out = new Uint8Array(samples.length * 4);
   const view = new DataView(out.buffer);

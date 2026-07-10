@@ -29,7 +29,7 @@ describe('PcmStreamParser', () => {
     expect(samples).toEqual(payload);
   });
 
-  it('survives arbitrary chunk boundaries — even one byte at a time', () => {
+  it('survives arbitrary chunk boundaries, even one byte at a time', () => {
     const { parser, headers, samples } = collector();
     const bytes = new Uint8Array([...encodePcmHeader(HEADER), ...encodePcmSamples(payload)]);
     for (const b of bytes) parser.push(new Uint8Array([b]));

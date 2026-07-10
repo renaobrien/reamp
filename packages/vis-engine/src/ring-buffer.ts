@@ -5,7 +5,7 @@
  * SharedArrayBuffer → renderer FFT. Single writer (main), any number of
  * readers (renderer vis windows).
  *
- * Rules (spec §1): PCM lives only in this buffer — never written to disk,
+ * Rules (spec §1): PCM lives only in this buffer, never written to disk,
  * never leaves the process. Analysis-only.
  *
  * Readers only ever want the most recent window (e.g. the latest 1024
@@ -55,7 +55,7 @@ export class PcmRingBuffer {
     let src = samples;
     if (src.length > cap) src = src.subarray(src.length - cap);
     const totalAfter = Atomics.load(this.header, 0) + BigInt(samples.length);
-    // Place src so its last sample lands at (totalAfter - 1) % cap — for an
+    // Place src so its last sample lands at (totalAfter - 1) % cap, for an
     // oversized (truncated) write this skips past the dropped samples.
     const pos = Number((totalAfter - BigInt(src.length)) % BigInt(cap));
     const firstChunk = Math.min(src.length, cap - pos);

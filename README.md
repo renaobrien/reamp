@@ -1,58 +1,60 @@
-# Reamp
+# Nostalgia
 
-> repo codename: `nostalgia`
+A Winamp 2.9 style player that controls Spotify (Premium) and Apple Music,
+with visualizations driven by the actual audio: classic spectrum and
+oscilloscope, plus Milkdrop via Butterchurn. macOS first, Windows in phase 2,
+Vision Pro in phase 3.
 
-A pixel-faithful Winamp 2.9 style player that controls **Spotify** (Premium)
-and **Apple Music**, with real audio-reactive visualizations — classic
-spectrum/oscilloscope and Milkdrop via Butterchurn — on macOS first, then
-Windows, then a spatial mode on Vision Pro.
+Load your 2003-era `.wsz` skin, hit play, and the bars move to the real music.
 
-Streaming killed the player as an object. This puts the artifact back on the
-desktop and lets it drive the services you actually pay for: your 2003-era
-`.wsz` skin loads, you hit play, Spotify audio comes out, and the bars move
-to the actual music.
+The docs in `docs/` use the working title "Reamp"; the project is Nostalgia.
 
-## How it can work at all (the two hard truths)
+## Design constraints
 
-1. **Spotify's platform is locked down** (Feb 2026 rules): Development Mode
-   only, 5-user allowlist, bring-your-own client ID, and the audio-analysis
-   endpoints are dead with no replacement. So Reamp is a personal-use /
-   open-source product — you paste your own client ID, Premium required.
-2. **DRM means no direct audio access.** Both services stream encrypted
-   audio. The visualizer instead analyzes the system's audio *output*
-   (loopback capture via a ScreenCaptureKit sidecar) — a true FFT of
-   whatever is playing, analysis-only, never written to disk.
+Two platform facts shape the whole architecture:
 
-Full reasoning: [docs/reamp-overview-brief.md](docs/reamp-overview-brief.md),
-[docs/reamp-prd.md](docs/reamp-prd.md),
+1. Spotify locked down its platform in February 2026. New apps get
+   Development Mode only: a 5-user allowlist, a reduced endpoint set, and no
+   audio analysis API at all. So Nostalgia is personal-use, open-source
+   software. You bring your own client ID and you need Premium.
+2. Both services stream DRM-encrypted audio, so nothing can read the raw
+   stream. The visualizer analyzes the system's audio output instead
+   (loopback capture via a ScreenCaptureKit sidecar). The captured signal is
+   used for analysis only and is never written to disk.
+
+Details in [docs/reamp-overview-brief.md](docs/reamp-overview-brief.md),
+[docs/reamp-prd.md](docs/reamp-prd.md), and
 [docs/reamp-technical-spec.md](docs/reamp-technical-spec.md).
 
-## Status: pre-M0 scaffold
+## Status
+
+Pre-M0 scaffold.
 
 | Milestone | What | State |
 |---|---|---|
-| M0 | castLabs ECS Electron spike — one Spotify + one Apple Music track playing (proves the DRM path) | next up |
-| M1 | Swift SCK capture sidecar → PCM ring buffer → live FFT | — |
-| M2 | Webamp embedded, Spotify adapter wired to transport/marquee/playlist | — |
-| M3 | Apple Music adapter parity + source switcher | — |
-| M4 | Classic vis window (viscolor.txt-aware) + detachable Butterchurn | — |
-| M5 | Settings/onboarding, skin drag-drop, packaging, notarization → v1 | — |
+| M0 | castLabs ECS Electron spike: one Spotify and one Apple Music track playing, proving the DRM path | next up |
+| M1 | Swift ScreenCaptureKit sidecar to PCM ring buffer to live FFT | not started |
+| M2 | Webamp embedded, Spotify adapter wired to transport, marquee, playlist | not started |
+| M3 | Apple Music adapter parity and source switcher | not started |
+| M4 | Classic vis window (viscolor.txt aware) and detachable Butterchurn | not started |
+| M5 | Settings, onboarding, skin drag-drop, packaging, notarization: v1 | not started |
 
-What's real today: the `SourceAdapter` contract, the vis-engine math (FFT,
-75-band spectrum, SharedArrayBuffer PCM ring buffer), PKCE + 127.0.0.1
-loopback OAuth plumbing, and the MusicKit token minting script — all typed
-strict and tested.
+Working and tested today: the `SourceAdapter` contract, the vis-engine math
+(FFT, 75-band spectrum, oscilloscope, SharedArrayBuffer PCM ring buffer),
+the complete Spotify PKCE auth flow (loopback server on 127.0.0.1, code
+exchange, refresh), the sidecar PCM wire protocol, and the MusicKit token
+minting script.
 
 ## Repo layout
 
 ```
 apps/desktop/        Electron shell (castLabs ECS from M0)
-  src/main/          main process: OAuth loopback, safeStorage, sidecar mgr
+  src/main/          main process: OAuth, safeStorage, sidecar manager
   src/renderer/      Webamp host, adapters, vis, settings (from M2)
   sidecar/           Swift ScreenCaptureKit audio capture (M1)
-packages/adapters/   SourceAdapter contract + Spotify / Apple Music impls
-packages/vis-engine/ FFT, spectrum bands, PCM ring buffer
-packages/skins/      default-skin + .wsz helpers (no Winamp base skin — IP)
+packages/adapters/   SourceAdapter contract, Spotify and Apple Music impls
+packages/vis-engine/ FFT, spectrum bands, oscilloscope, PCM ring buffer
+packages/skins/      default skin and .wsz helpers
 scripts/             gen-apple-token.ts (offline MusicKit JWT)
 docs/                brief, PRD, tech spec
 ```
@@ -65,13 +67,13 @@ pnpm typecheck
 pnpm test
 ```
 
-Node ≥ 22, pnpm ≥ 10. Conventions and hard platform rules live in
+Node 22 or newer, pnpm 10 or newer. Conventions and platform rules live in
 [CLAUDE.md](CLAUDE.md).
 
 ### Minting an Apple Music developer token
 
-Requires an Apple Developer Program membership and a MusicKit `.p8` key
-(never commit it — it's gitignored):
+Requires an Apple Developer Program membership and a MusicKit `.p8` key.
+The key is gitignored; never commit it.
 
 ```sh
 node --experimental-strip-types scripts/gen-apple-token.ts \
@@ -80,20 +82,19 @@ node --experimental-strip-types scripts/gen-apple-token.ts \
 
 ### Bringing your own Spotify client ID
 
-Create an app at developer.spotify.com (Development Mode), set the redirect
-URI to `http://127.0.0.1:8888/callback` (must be `127.0.0.1`, not
-`localhost`), and paste the client ID into Reamp's settings pane once it
-exists (M2). The app owner needs an active Premium subscription.
+Create an app at developer.spotify.com (Development Mode) and set the
+redirect URI to `http://127.0.0.1:8888/callback`. Spotify requires
+`127.0.0.1`, not `localhost`. Paste the client ID into the settings pane
+once it exists (M2). The app owner needs an active Premium subscription.
 
 ## Skins
 
 Webamp loads classic `.wsz` skins natively. The Winamp base skin is Llama
-Group IP and will never be bundled; the default will be a CC-licensed
-community skin, and the other ~90k live at the
+Group IP and will not be bundled. The default will be a CC-licensed
+community skin, and the other 90k or so live at the
 [Winamp Skin Museum](https://skins.webamp.org).
 
 ## License
 
-[MIT](LICENSE). Built on the shoulders of
-[Webamp](https://github.com/captbaritone/webamp) and
-[Butterchurn](https://github.com/jberg/butterchurn) (both MIT).
+[MIT](LICENSE). Built on [Webamp](https://github.com/captbaritone/webamp)
+and [Butterchurn](https://github.com/jberg/butterchurn), both MIT.

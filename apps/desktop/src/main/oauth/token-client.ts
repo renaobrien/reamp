@@ -2,7 +2,7 @@
  * Spotify token exchange + refresh for the PKCE flow (spec §4).
  *
  * Runs in the Electron main process. The resulting TokenSet is handed to
- * the safeStorage vault (M5) — tokens never touch the renderer directly
+ * the safeStorage vault (M5), tokens never touch the renderer directly
  * and never land in the repo or on disk unencrypted.
  */
 
@@ -17,7 +17,7 @@ export interface TokenSet {
 }
 
 export interface TokenClientOptions {
-  /** User-supplied client ID (BYO — Reamp never ships one). */
+  /** User-supplied client ID (BYO, Nostalgia never ships one). */
   clientId: string;
   tokenUrl?: string;
   /** Injectable for tests. */
@@ -75,7 +75,7 @@ export class SpotifyTokenClient {
         body !== null && typeof body === 'object' && 'error' in body
           ? `${(body as { error: string; error_description?: string }).error}: ${(body as { error_description?: string }).error_description ?? ''}`
           : `HTTP ${res.status}`;
-      throw new Error(`Spotify token request failed — ${detail.trim()}`);
+      throw new Error(`Spotify token request failed, ${detail.trim()}`);
     }
 
     const t = body as {

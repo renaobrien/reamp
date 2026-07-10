@@ -49,7 +49,7 @@ describe('authorizeSpotify', () => {
     expect(authorizeUrl!.searchParams.get('scope')).toBe(DEFAULT_SPOTIFY_SCOPES.join(' '));
 
     // …and the verifier sent to the token endpoint matches the challenge
-    // the browser saw — the pair really belongs to this flow.
+    // the browser saw, the pair really belongs to this flow.
     expect(tokenForm!.get('code')).toBe('grant123');
     expect(challengeFromVerifier(tokenForm!.get('code_verifier')!)).toBe(
       authorizeUrl!.searchParams.get('code_challenge'),
