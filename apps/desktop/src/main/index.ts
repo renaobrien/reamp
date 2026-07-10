@@ -53,6 +53,16 @@ function buildMenu(host: AdapterHost): Menu {
     { role: 'fileMenu' },
     { role: 'editMenu' },
     { role: 'viewMenu' },
+    {
+      label: 'Vis',
+      submenu: [
+        {
+          label: 'Milkdrop Window',
+          accelerator: 'CmdOrCtrl+M',
+          click: () => openMilkdropWindow(),
+        },
+      ],
+    },
     { role: 'windowMenu' },
     {
       role: 'help',
@@ -68,6 +78,32 @@ function buildMenu(host: AdapterHost): Menu {
       ],
     },
   ]);
+}
+
+let milkdropWindow: BrowserWindow | null = null;
+
+/** Detachable Milkdrop window (R7). One instance; refocus if already open. */
+function openMilkdropWindow(): void {
+  if (milkdropWindow !== null && !milkdropWindow.isDestroyed()) {
+    milkdropWindow.focus();
+    return;
+  }
+  milkdropWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    title: 'Reamp Milkdrop',
+    backgroundColor: '#000000',
+    webPreferences: {
+      preload: join(__dirname, '../preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+  milkdropWindow.on('closed', () => {
+    milkdropWindow = null;
+  });
+  void milkdropWindow.loadFile(join(__dirname, '../renderer/milkdrop.html'));
 }
 
 function createWindow(): void {

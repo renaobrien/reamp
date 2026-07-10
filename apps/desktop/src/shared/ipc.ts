@@ -32,6 +32,8 @@ export interface VisFrameEvent {
   levels: number[];
   /** Oscilloscope points, -1..1. */
   wave: number[];
+  /** Latest raw PCM window, floats -1..1 (Butterchurn eats this). */
+  pcm: number[];
 }
 
 export type TransportCommand =

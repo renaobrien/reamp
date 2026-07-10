@@ -15,6 +15,8 @@ export interface VisFrame {
   levels: number[];
   /** 75 oscilloscope points, -1..1. */
   wave: number[];
+  /** The raw analysis window (fftSize samples, -1..1) for Butterchurn. */
+  pcm: number[];
 }
 
 export interface VisServiceOptions {
@@ -89,7 +91,11 @@ export class VisService {
     this.ring.readLatest(this.window);
     const levels = this.analyzer.process(this.window);
     waveformPoints(this.window, this.wave.length, this.wave);
-    this.opts.broadcast({ levels: Array.from(levels), wave: Array.from(this.wave) });
+    this.opts.broadcast({
+      levels: Array.from(levels),
+      wave: Array.from(this.wave),
+      pcm: Array.from(this.window),
+    });
   }
 
   private makeAnalyzer(sampleRate: number): SpectrumAnalyzer {

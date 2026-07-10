@@ -43,6 +43,9 @@ describe('VisService (full pipeline against the mock sidecar)', () => {
     expect(Math.max(...frame.levels)).toBeGreaterThan(0.1);
     // The waveform must actually wiggle, not sit at zero.
     expect(Math.max(...frame.wave) - Math.min(...frame.wave)).toBeGreaterThan(0.1);
+    // The raw window rides along for Butterchurn: full fftSize, live signal.
+    expect(frame.pcm.length).toBe(1024);
+    expect(Math.max(...frame.pcm) - Math.min(...frame.pcm)).toBeGreaterThan(0.1);
   });
 
   it('stops producing frames after stop()', async () => {
