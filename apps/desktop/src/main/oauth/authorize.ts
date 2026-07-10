@@ -9,7 +9,7 @@ import { buildSpotifyAuthorizeUrl, generatePkcePair } from './pkce.js';
 import { SpotifyTokenClient, type TokenSet } from './token-client.js';
 
 /**
- * Everything Nostalgia needs: Web Playback SDK (streaming + user-read-email +
+ * Everything Reamp needs: Web Playback SDK (streaming + user-read-email +
  * user-read-private), transport control, and playlist browse.
  * Verify against dev-mode availability when wiring the adapter (M2).
  */

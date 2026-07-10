@@ -1,12 +1,10 @@
-# Nostalgia
+# Reamp
 
 A Winamp 2.9 style player that controls Spotify and Apple Music, with
 visualizations driven by the actual audio: classic spectrum and
 oscilloscope, plus Milkdrop via Butterchurn. macOS first.
 
 Load your 2003-era `.wsz` skin, hit play, and the bars move to the real music.
-
-The docs in `docs/` use the working title "Reamp"; the project is Nostalgia.
 
 ## How it works
 
@@ -22,7 +20,7 @@ Two facts shape the design:
 
 ## Two modes
 
-**Desktop control (v1, the default).** Nostalgia drives the official
+**Desktop control (v1, the default).** Reamp drives the official
 Spotify and Music apps already on your Mac through their AppleScript
 interfaces, and visualizes whatever the system is playing. Zero setup: no
 API keys, no developer accounts, no Premium requirement. Transport
@@ -30,7 +28,7 @@ controls, current-track metadata, and (for Apple Music) full playlist
 browsing all work. Spotify playlist browsing is not exposed by its
 scripting interface; that one feature needs API mode.
 
-**API mode (optional, later).** In-app playback: Nostalgia itself becomes a
+**API mode (optional, later).** In-app playback: Reamp itself becomes a
 Spotify Connect device (Web Playback SDK) and an Apple Music player
 (MusicKit JS). Costs real friction: a bring-your-own Spotify client ID plus
 Premium, an Apple Developer membership ($99/yr) for the MusicKit token, and

@@ -1,6 +1,6 @@
-# Nostalgia build conventions
+# Reamp build conventions
 
-Repo: `nostalgia` (docs use the working title "Reamp"). Full context lives
+Repo: `reamp` (renamed from `nostalgia`; old GitHub URLs redirect). Full context lives
 in `docs/`. Read `reamp-technical-spec.md` before touching platform-adjacent
 code. This file is the distilled rulebook.
 
@@ -20,7 +20,7 @@ pnpm test             # vitest across all packages + scripts
 
 ## Layout
 
-- `apps/desktop`: Electron shell (castLabs ECS at M0). `src/main` is the
+- `apps/desktop`: Electron shell (plain Electron, M2). `src/main` is the
   Node main process (OAuth, safeStorage, sidecar manager, windows);
   `src/renderer` is the Webamp host, adapters, vis, settings; `sidecar/`
   is the Swift ScreenCaptureKit capture binary.
@@ -58,7 +58,7 @@ pnpm test             # vitest across all packages + scripts
   app's job, via Vite, from M2.
 - No em dashes in prose or comments; plain punctuation only.
 - Vis code paths run per frame: no allocation after construction in
-  `@nostalgia/vis-engine` (see `RealFft.analyze`, `SpectrumAnalyzer.process`).
+  `@reamp/vis-engine` (see `RealFft.analyze`, `SpectrumAnalyzer.process`).
 - The `SourceAdapter` interface (`packages/adapters/src/types.ts`) is the
   contract everything hangs on. Change it in the spec first, then here,
   and keep it mirrorable to Swift (visionOS Phase 3 shares the shape).

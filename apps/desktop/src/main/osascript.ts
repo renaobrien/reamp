@@ -1,7 +1,7 @@
 /**
  * The real OsaRunner for the desktop-control adapters: shells out to
  * /usr/bin/osascript. macOS will show a one-time Automation permission
- * prompt per target app ("Nostalgia wants to control Spotify"); denial
+ * prompt per target app ("Reamp wants to control Spotify"); denial
  * surfaces here as an error the settings UI can explain.
  */
 import { execFile } from 'node:child_process';

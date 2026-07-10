@@ -24,9 +24,9 @@ export interface LoopbackResult {
   code: string;
 }
 
-const CLOSE_PAGE = `<!doctype html><meta charset="utf-8"><title>Nostalgia</title>
+const CLOSE_PAGE = `<!doctype html><meta charset="utf-8"><title>Reamp</title>
 <body style="font-family:system-ui;display:grid;place-items:center;height:100vh;margin:0">
-<p>Nostalgia is connected. You can close this tab and get back to the llama.</p></body>`;
+<p>Reamp is connected. You can close this tab and get back to the llama.</p></body>`;
 
 /** Start listening and resolve with the authorization code from the first valid callback. */
 export function waitForOAuthCallback(opts: LoopbackOptions): Promise<LoopbackResult> {
