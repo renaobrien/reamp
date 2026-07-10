@@ -78,8 +78,10 @@ live FFT, M2 Electron shell + Webamp + adapters wired, M3 vis windows
 (classic + Butterchurn), M4 ship v1 (settings, packaging, notarization),
 M5+ optional API mode (ECS spike, Web Playback SDK, MusicKit JS).
 
-Current state: pre-M1. Desktop-control adapters for Spotify.app and
+Current state: mid-M1. Desktop-control adapters for Spotify.app and
 Music.app, contracts, vis math (FFT, spectrum bands, oscilloscope, ring
 buffer), the API-mode Spotify auth flow (PKCE, loopback, token
-exchange/refresh), the sidecar PCM wire protocol, and token minting are
-real and tested. The Electron entry point and Webamp host land at M2.
+exchange/refresh), the sidecar wire protocol and process manager, the
+Electron entry point with the feedback button, and token minting are real
+and tested. Remaining for M1: the Swift SCK binary (needs a Mac). The
+Webamp host lands at M2.
