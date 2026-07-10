@@ -1,18 +1,6 @@
-import { createServer } from 'node:http';
 import { describe, expect, it } from 'vitest';
 import { waitForOAuthCallback } from '../src/main/oauth/loopback-server.js';
-
-/** Grab an ephemeral port the OS considers free. */
-function freePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const srv = createServer();
-    srv.on('error', reject);
-    srv.listen(0, '127.0.0.1', () => {
-      const { port } = srv.address() as { port: number };
-      srv.close(() => resolve(port));
-    });
-  });
-}
+import { freePort } from './helpers.js';
 
 describe('waitForOAuthCallback', () => {
   it('resolves with the code from a valid callback', async () => {

@@ -4,7 +4,7 @@
  * Lives in the Electron main process. The system browser is opened to the
  * authorize URL; the redirect lands on http://127.0.0.1:<port>/callback,
  * we capture the code, show a "you can close this tab" page, and shut the
- * server down. Binds strictly to 127.0.0.1 — Spotify rejects `localhost`
+ * server down. Binds strictly to 127.0.0.1, Spotify rejects `localhost`
  * loopback URIs and we never listen on external interfaces.
  */
 import { createServer, type Server } from 'node:http';
@@ -24,9 +24,9 @@ export interface LoopbackResult {
   code: string;
 }
 
-const CLOSE_PAGE = `<!doctype html><meta charset="utf-8"><title>Reamp</title>
+const CLOSE_PAGE = `<!doctype html><meta charset="utf-8"><title>Nostalgia</title>
 <body style="font-family:system-ui;display:grid;place-items:center;height:100vh;margin:0">
-<p>Reamp is connected. You can close this tab and get back to the llama.</p></body>`;
+<p>Nostalgia is connected. You can close this tab and get back to the llama.</p></body>`;
 
 /** Start listening and resolve with the authorization code from the first valid callback. */
 export function waitForOAuthCallback(opts: LoopbackOptions): Promise<LoopbackResult> {

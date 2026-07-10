@@ -9,17 +9,17 @@ import type {
 } from '../types.js';
 
 /**
- * Spotify adapter — Web Playback SDK (local Connect device) + Web API.
+ * Spotify adapter, Web Playback SDK (local Connect device) + Web API.
  *
  * Platform constraints this implementation must respect (spec §1):
  * - BYO client ID: the user creates their own app at developer.spotify.com.
- *   Reamp never ships a shared client ID. Dev mode: max 5 allowlisted users,
+ *   Nostalgia never ships a shared client ID. Dev mode: max 5 allowlisted users,
  *   owner must hold Premium.
  * - Auth is Authorization Code with PKCE; loopback redirect must use
  *   127.0.0.1, never `localhost`. The OAuth server lives in the Electron
  *   main process; this adapter receives tokens over IPC.
  * - audio-features / audio-analysis are DEAD (403) for new apps. Do not add
- *   getTrackFeatures here — visuals come from loopback capture only.
+ *   getTrackFeatures here, visuals come from loopback capture only.
  * - Player endpoints survive in dev mode; several catalog endpoints do not.
  *   Verify the surviving list against the Feb 2026 changelog before wiring
  *   browse/search. Do not trust older SDK wrappers.
@@ -32,7 +32,7 @@ export class SpotifyAdapter implements SourceAdapter {
   auth(): Promise<AuthState> {
     return Promise.resolve({
       status: 'unauthorized',
-      detail: 'Not implemented — M2. PKCE flow via main-process loopback server.',
+      detail: 'Not implemented, M2. PKCE flow via main-process loopback server.',
     });
   }
 

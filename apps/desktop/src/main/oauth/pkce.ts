@@ -22,7 +22,7 @@ export function challengeFromVerifier(verifier: string): string {
 
 export interface AuthorizeUrlOptions {
   clientId: string;
-  /** Must be registered verbatim in the Spotify app — 127.0.0.1, never localhost. */
+  /** Must be registered verbatim in the Spotify app, 127.0.0.1, never localhost. */
   redirectUri: string;
   scopes: string[];
   challenge: string;

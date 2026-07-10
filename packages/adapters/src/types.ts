@@ -1,5 +1,5 @@
 /**
- * The Source Adapter contract — the seam everything hangs on.
+ * The Source Adapter contract, the seam everything hangs on.
  *
  * Both streaming backends (and any future ones: Tidal, Plex, Jellyfin)
  * implement this interface. Webamp's media layer delegates to the active
@@ -75,8 +75,8 @@ export interface SourceAdapter {
   // browse
   getPlaylists(): Promise<PlaylistSummary[]>;
   getPlaylistTracks(id: string): Promise<Track[]>;
-  /** Optional — endpoint availability varies (Spotify dev mode removed several catalog endpoints in Feb 2026). */
+  /** Optional, endpoint availability varies (Spotify dev mode removed several catalog endpoints in Feb 2026). */
   search?(q: string): Promise<Track[]>;
-  /** Apple Music only — tempo/key for beat-synced preset transitions (P1). Never the primary vis signal. */
+  /** Apple Music only, tempo/key for beat-synced preset transitions (P1). Never the primary vis signal. */
   getTrackFeatures?(id: string): Promise<{ tempo?: number; key?: string }>;
 }

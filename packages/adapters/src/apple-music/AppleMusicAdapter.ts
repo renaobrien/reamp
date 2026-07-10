@@ -9,16 +9,16 @@ import type {
 } from '../types.js';
 
 /**
- * Apple Music adapter — MusicKit JS v3 in the Chromium renderer.
+ * Apple Music adapter, MusicKit JS v3 in the Chromium renderer.
  *
  * Platform notes (spec §1):
  * - Requires an Apple Developer Program membership to mint the developer
- *   token (ES256 JWT, ≤6-month expiry) — generated offline by
+ *   token (ES256 JWT, ≤6-month expiry), generated offline by
  *   scripts/gen-apple-token.ts from the user's .p8 key. Never committed.
  * - User token comes from MusicKit's authorize() in the renderer; both
  *   tokens stored via Electron safeStorage.
  * - Audio is EME-protected: no Web Audio tap. Visuals come from loopback.
- * - Apple still exposes tempo/key/timeSignature on many catalog tracks —
+ * - Apple still exposes tempo/key/timeSignature on many catalog tracks,
  *   exposed via getTrackFeatures for P1 beat-synced preset transitions,
  *   never as the primary vis signal.
  *
@@ -30,7 +30,7 @@ export class AppleMusicAdapter implements SourceAdapter {
   auth(): Promise<AuthState> {
     return Promise.resolve({
       status: 'unauthorized',
-      detail: 'Not implemented — M3. MusicKit JS authorize() with offline-minted developer token.',
+      detail: 'Not implemented, M3. MusicKit JS authorize() with offline-minted developer token.',
     });
   }
 
