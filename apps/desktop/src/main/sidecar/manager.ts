@@ -24,6 +24,8 @@ export interface SidecarManagerOptions {
   /** Give up after this many consecutive failed runs (no header seen). */
   maxConsecutiveFailures?: number;
   restartDelayMs?: number;
+  /** Extra environment for the child (e.g. ELECTRON_RUN_AS_NODE for the mock). */
+  env?: NodeJS.ProcessEnv;
   /** Injectable for tests. */
   spawnImpl?: typeof spawn;
 }
@@ -90,6 +92,7 @@ export class SidecarManager {
 
     const child = this.spawnImpl(this.opts.binaryPath, this.opts.args ?? [], {
       stdio: ['ignore', 'pipe', 'pipe'],
+      env: this.opts.env === undefined ? process.env : { ...process.env, ...this.opts.env },
     });
     this.child = child;
     let settled = false;

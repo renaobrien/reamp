@@ -17,6 +17,23 @@ import { collectSystemInfo, formatDiagnostics } from './diagnostics.js';
 import { buildFeedbackUrl } from './feedback.js';
 import { runOsaScript } from './osascript.js';
 import { broadcastToWindows, registerIpc } from './register-ipc.js';
+import { IPC } from '../shared/ipc.js';
+import { VisService } from './vis-service.js';
+
+/**
+ * The real SCK binary when REAMP_SIDECAR_BIN points at one; otherwise the
+ * mock sidecar (same wire protocol, synthetic audio) run through our own
+ * executable in Node mode, so the vis pipeline works on any machine.
+ */
+function resolveSidecar(): { binaryPath: string; args: string[]; env?: NodeJS.ProcessEnv } {
+  const real = process.env['REAMP_SIDECAR_BIN'];
+  if (real !== undefined && real.length > 0) return { binaryPath: real, args: [] };
+  return {
+    binaryPath: process.execPath,
+    args: [join(__dirname, '../../sidecar-mock/mock-sidecar.mjs')],
+    env: { ELECTRON_RUN_AS_NODE: '1' },
+  };
+}
 
 function feedbackUrl(host: AdapterHost): string {
   return buildFeedbackUrl({
@@ -69,15 +86,24 @@ function createWindow(): void {
 }
 
 void app.whenReady().then(() => {
+  const windows = (): BrowserWindow[] => BrowserWindow.getAllWindows();
   const host = new AdapterHost({
     adapters: {
       spotify: new SpotifyDesktopAdapter({ runOsaScript }),
       'apple-music': new MusicDesktopAdapter({ runOsaScript }),
     },
     initialSource: 'spotify',
-    broadcast: broadcastToWindows(() => BrowserWindow.getAllWindows()),
+    broadcast: broadcastToWindows(IPC.playerState, windows),
   });
   registerIpc(host);
+
+  const vis = new VisService({
+    ...resolveSidecar(),
+    broadcast: broadcastToWindows(IPC.visFrame, windows),
+  });
+  vis.start();
+  app.on('will-quit', () => vis.stop());
+
   Menu.setApplicationMenu(buildMenu(host));
   createWindow();
   app.on('activate', () => {

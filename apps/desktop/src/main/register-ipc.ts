@@ -17,10 +17,10 @@ export function registerIpc(host: AdapterHost): void {
   ipcMain.handle(IPC.getPlaylistTracks, (_e, id: string) => host.getPlaylistTracks(id));
 }
 
-export function broadcastToWindows(getWindows: () => BrowserWindow[]) {
+export function broadcastToWindows(channel: string, getWindows: () => BrowserWindow[]) {
   return (event: unknown): void => {
     for (const win of getWindows()) {
-      if (!win.isDestroyed()) win.webContents.send(IPC.playerState, event);
+      if (!win.isDestroyed()) win.webContents.send(channel, event);
     }
   };
 }

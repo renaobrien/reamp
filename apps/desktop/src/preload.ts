@@ -3,7 +3,12 @@
  * a typed `reamp` API backed by IPC; no Node primitives cross over.
  */
 import { contextBridge, ipcRenderer } from 'electron';
-import { IPC, type PlayerStateEvent, type TransportCommand } from './shared/ipc.js';
+import {
+  IPC,
+  type PlayerStateEvent,
+  type TransportCommand,
+  type VisFrameEvent,
+} from './shared/ipc.js';
 
 const api = {
   transport: (cmd: TransportCommand): Promise<void> => ipcRenderer.invoke(IPC.transport, cmd),
@@ -15,6 +20,9 @@ const api = {
     ipcRenderer.invoke(IPC.getPlaylistTracks, id),
   onPlayerState: (cb: (event: PlayerStateEvent) => void): void => {
     ipcRenderer.on(IPC.playerState, (_e, event: PlayerStateEvent) => cb(event));
+  },
+  onVisFrame: (cb: (frame: VisFrameEvent) => void): void => {
+    ipcRenderer.on(IPC.visFrame, (_e, frame: VisFrameEvent) => cb(frame));
   },
 };
 

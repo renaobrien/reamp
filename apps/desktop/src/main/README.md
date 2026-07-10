@@ -42,6 +42,12 @@ What lives here:
   decoded PCM to a sink, restarts on crash with a consecutive-failure cap,
   and reports state (idle/starting/running/stopped/failed) for the
   settings UI. Tested against real child processes faking the protocol.
+- `vis-service.ts`: the vis pipeline's main-process half. Sidecar PCM
+  fills the ring buffer; a ~30Hz timer runs the FFT and oscilloscope math
+  and broadcasts compact frames over IPC (sidesteps SharedArrayBuffer
+  isolation for v1). Without REAMP_SIDECAR_BIN set it runs
+  `../../sidecar-mock/mock-sidecar.mjs`, a Node stand-in speaking the
+  same wire protocol with synthetic audio, so bars move on any machine.
 
 Still to come (M1 to M2): the Swift sidecar binary itself, safeStorage
 vault, window snapping/always-on-top, Webamp host wiring.
