@@ -8,11 +8,21 @@ v1 uses plain Electron because desktop-control mode plays no DRM audio
 in-app. The castLabs ECS fork enters only if API-mode in-app playback
 lands (spec §2); pin its version against current releases at that time.
 
+Build/run: esbuild bundles main + preload to `dist/`, Vite builds the
+renderer. `pnpm start` inside apps/desktop builds and launches (needs the
+Electron binary approved: `pnpm approve-builds` once, on a machine with a
+display).
+
 What lives here:
 
-- `index.ts`: entry point. Placeholder window plus the application menu,
-  including Help > Send Feedback. Run tooling (Vite + electron-builder)
-  lands at M2 with the Webamp host.
+- `index.ts`: entry point. Boots the transport-strip window, constructs
+  the desktop adapters with the real osascript runner, and registers IPC.
+  The application menu carries Help > Send Feedback.
+- `adapter-host.ts`: owns the adapters, dispatches transport commands to
+  the active one, manages the player-state subscription across source
+  switches, broadcasts state to the IPC layer.
+- `register-ipc.ts`: binds AdapterHost to ipcMain; `../shared/ipc.ts` is
+  the typed channel contract, `../preload.ts` the contextBridge surface.
 - `feedback.ts`: builds the prefilled new-issue URL on the upstream repo
   (https://github.com/renaobrien/reamp). Nothing is sent silently; the
   browser opens a draft the user can edit or abandon.
