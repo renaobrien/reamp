@@ -12,6 +12,14 @@
  * the Winamp Skin Museum (https://skins.webamp.org) for the other 90k.
  */
 
+export {
+  DEFAULT_VISCOLORS,
+  VISCOLOR_COUNT,
+  parseViscolor,
+  rgbToCss,
+  type Rgb,
+} from './viscolor.js';
+
 export interface SkinRef {
   /** Absolute path or app-resource URL to a .wsz file. */
   source: string;

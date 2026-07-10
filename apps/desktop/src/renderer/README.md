@@ -12,8 +12,12 @@ What lives here:
   calls; player-state events become timeupdate/playing/fileLoaded.
 - `webamp-host.ts`: mounts Webamp with the Reamp backend and reconciles
   its UI against external reality (pausing in Spotify.app pauses the lamp).
-- `main.ts` + `index.html`: debug transport strip, source switcher, and
-  the canvas spectrum/oscilloscope, kept as a diagnostic surface.
+- `classic-vis.ts`: the classic vis drawn the way Winamp drew it: 2px
+  blocks with gutters, the 16-step viscolor gradient, falling peak caps,
+  click to toggle spectrum/oscilloscope. Palette comes from
+  `@reamp/skins` (canonical default until skins load their own).
+- `main.ts` + `index.html`: the deck layout (Webamp above, vis deck
+  below), fallback transport controls, source switcher, readout.
 
 Rules that bind this directory:
 

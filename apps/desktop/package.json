@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@reamp/adapters": "workspace:*",
+    "@reamp/skins": "workspace:*",
     "@reamp/vis-engine": "workspace:*",
     "webamp": "^2.3.1"
   },

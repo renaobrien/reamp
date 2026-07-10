@@ -25,8 +25,8 @@ pnpm test             # vitest across all packages + scripts
   `src/renderer` is the Webamp host, adapters, vis, settings; `sidecar/`
   is the Swift ScreenCaptureKit capture binary.
 - `packages/adapters`: `SourceAdapter` contract plus Spotify/Apple impls.
-- `packages/vis-engine`: FFT, spectrum bands, oscilloscope, PCM ring buffer.
-- `packages/skins`: default-skin resolution, `.wsz` helpers.
+- `packages/vis-engine`: FFT, spectrum bands, peak caps, oscilloscope, PCM ring buffer.
+- `packages/skins`: viscolor.txt parser, default palette, `.wsz` helpers.
 - `scripts/`: `gen-apple-token.ts` (offline MusicKit JWT minting).
 
 ## Hard platform rules (violating these breaks the product or ToS)
@@ -78,10 +78,11 @@ live FFT, M2 Electron shell + Webamp + adapters wired, M3 vis windows
 (classic + Butterchurn), M4 ship v1 (settings, packaging, notarization),
 M5+ optional API mode (ECS spike, Web Playback SDK, MusicKit JS).
 
-Current state: mid-M1. Desktop-control adapters for Spotify.app and
-Music.app, contracts, vis math (FFT, spectrum bands, oscilloscope, ring
-buffer), the API-mode Spotify auth flow (PKCE, loopback, token
-exchange/refresh), the sidecar wire protocol and process manager, the
-Electron entry point with the feedback button, and token minting are real
-and tested. Remaining for M1: the Swift SCK binary (needs a Mac). The
-Webamp host lands at M2.
+Current state: M2 code-complete, pending on-device verification.
+Desktop-control adapters, the IPC transport chain (sandboxed renderer,
+typed preload bridge, AdapterHost), the Webamp host with the custom
+media backend (verified against webamp@2.3.1 shipped types), vis math
+plus peak caps and the viscolor parser, the classic vis deck, the
+sidecar manager with a mock sidecar, the feedback button, and the
+API-mode auth flow are all real and tested. Hardware-bound remainder:
+the Swift SCK binary (M1), and first run on a Mac with a display.
