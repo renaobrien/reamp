@@ -13,7 +13,8 @@
     "start": "pnpm build && electron ."
   },
   "dependencies": {
-    "@reamp/adapters": "workspace:*"
+    "@reamp/adapters": "workspace:*",
+    "@reamp/vis-engine": "workspace:*"
   },
   "devDependencies": {
     "electron": "^43.1.0",

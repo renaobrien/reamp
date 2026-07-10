@@ -44,6 +44,31 @@ window.reamp.onPlayerState((event) => {
   render(event);
 });
 
+// Debug vis: 75 classic bars plus the oscilloscope trace. Colors follow
+// the stock viscolor palette vibe until real viscolor.txt support (M3).
+const canvas = $('vis') as HTMLCanvasElement;
+const ctx = canvas.getContext('2d')!;
+window.reamp.onVisFrame(({ levels, wave }) => {
+  const { width, height } = canvas;
+  ctx.clearRect(0, 0, width, height);
+  const barW = width / levels.length;
+  for (let i = 0; i < levels.length; i++) {
+    const h = levels[i]! * (height - 20);
+    const hue = 120 - (h / (height - 20)) * 120; // green floor to red peak
+    ctx.fillStyle = `hsl(${hue}, 90%, 50%)`;
+    ctx.fillRect(i * barW, height - h, Math.max(1, barW - 1), h);
+  }
+  ctx.strokeStyle = '#00e5b0';
+  ctx.beginPath();
+  for (let i = 0; i < wave.length; i++) {
+    const x = (i / (wave.length - 1)) * width;
+    const y = height / 2 + (wave[i]! * height) / 2.5;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+});
+
 $('prev').addEventListener('click', () => send({ action: 'previous' }));
 $('playpause').addEventListener('click', () =>
   send(playing ? { action: 'pause' } : { action: 'play' }),

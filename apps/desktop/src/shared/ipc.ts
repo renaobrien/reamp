@@ -23,7 +23,16 @@ export const IPC = {
   getPlaylistTracks: 'reamp:get-playlist-tracks',
   /** main -> renderer: PlayerStateEvent */
   playerState: 'reamp:player-state',
+  /** main -> renderer: VisFrameEvent, ~30Hz while capture runs */
+  visFrame: 'reamp:vis-frame',
 } as const;
+
+export interface VisFrameEvent {
+  /** Spectrum bar levels, 0..1. */
+  levels: number[];
+  /** Oscilloscope points, -1..1. */
+  wave: number[];
+}
 
 export type TransportCommand =
   | { action: 'play'; uri?: string }

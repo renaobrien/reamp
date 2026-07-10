@@ -27,6 +27,7 @@
         cursor: pointer;
       }
       #status { color: #557; min-height: 1.5em; }
+      #vis { background: #000; border: 1px solid #16213e; image-rendering: pixelated; }
     </style>
   </head>
   <body>
@@ -43,6 +44,7 @@
         </select>
       </p>
       <p id="status">waiting for player state…</p>
+      <canvas id="vis" width="450" height="120"></canvas>
     </main>
     <script type="module" src="./main.ts"></script>
   </body>
