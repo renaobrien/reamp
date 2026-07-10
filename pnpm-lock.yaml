@@ -26,6 +26,9 @@ importers:
       '@reamp/vis-engine':
         specifier: workspace:*
         version: link:../../packages/vis-engine
+      webamp:
+        specifier: ^2.3.1
+        version: 2.3.1
     devDependencies:
       electron:
         specifier: ^43.1.0
@@ -891,6 +894,9 @@ packages:
       jsdom:
         optional: true
 
+  webamp@2.3.1:
+    resolution: {integrity: sha512-u2NpSKYsUfDKltcvteF3vDbAzp+kDiymr5Sn0Vgfl+Uk9Kvd4GmuaF3stOxKNLbDH+RkJ2YZfus7O3W2axq4Qg==}
+
   why-is-node-running@2.3.0:
     resolution: {integrity: sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w==}
     engines: {node: '>=8'}
@@ -1548,6 +1554,8 @@ snapshots:
       - terser
       - tsx
       - yaml
+
+  webamp@2.3.1: {}
 
   why-is-node-running@2.3.0:
     dependencies:

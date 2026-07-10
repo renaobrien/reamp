@@ -2,7 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'self'" />
+    <!-- data:/blob: allowances are for Webamp's skin engine: .wsz images
+         and cursors are unpacked in-memory and applied as data URIs. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; media-src 'self' data: blob:" />
     <title>Reamp</title>
     <style>
       body {
@@ -31,6 +33,7 @@
     </style>
   </head>
   <body>
+    <div id="webamp-container" style="position: absolute; inset: 0 0 40% 0"></div>
     <main>
       <p id="marquee">Reamp: transport strip (Webamp lands next)</p>
       <p id="time">0:00 / 0:00</p>

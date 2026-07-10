@@ -37,22 +37,25 @@ this mode is already built and tested; the playback shell is deferred.
 
 ## Status
 
-Pre-M1 scaffold. All logic below is written and unit tested; nothing has a
-UI yet, and the AppleScript adapters need verification on a real Mac.
+Everything below is written and unit tested (typecheck strict, 80+ tests).
+What remains is hardware-bound: the Swift capture binary, and verifying
+the AppleScript adapters and Webamp rendering on a real Mac with a display.
 
 | Milestone | What | State |
 |---|---|---|
 | M0 | Desktop-control adapters for Spotify.app and Music.app | code done, needs macOS verification |
 | M1 | Swift ScreenCaptureKit sidecar to PCM ring buffer to live FFT | not started |
-| M2 | Electron shell, Webamp embedded, adapters wired to transport, marquee, playlist | in progress: IPC transport chain done, Webamp pixels pending |
+| M2 | Electron shell, Webamp embedded, adapters wired to transport, marquee, playlist | code done, needs display verification |
 | M3 | Classic vis window (viscolor.txt aware) and detachable Butterchurn | not started |
 | M4 | Settings, onboarding, skin drag-drop, packaging, notarization: v1 | not started |
 | M5+ | API mode: castLabs ECS spike, Web Playback SDK, MusicKit JS | later, optional |
 
 Working and tested today: both desktop-control adapters, the
 `SourceAdapter` contract, the vis-engine math (FFT, 75-band spectrum,
-oscilloscope, SharedArrayBuffer PCM ring buffer), the sidecar PCM wire
-protocol, the complete Spotify PKCE auth flow for API mode, and the
+oscilloscope, PCM ring buffer), the sidecar wire protocol and process
+manager with a mock sidecar (bars move on any machine), the Electron
+shell with IPC transport chain and Webamp media backend, the feedback
+button, the complete Spotify PKCE auth flow for API mode, and the
 MusicKit token minting script.
 
 ## Repo layout

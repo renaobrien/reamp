@@ -44,6 +44,16 @@ window.reamp.onPlayerState((event) => {
   render(event);
 });
 
+// Webamp mounts above the debug strip; the strip stays as a fallback
+// and diagnostic surface until Webamp is verified on a real display.
+import('./webamp-host.js')
+  .then(({ mountWebamp }) => mountWebamp(window.reamp, $('webamp-container')))
+  .catch((err: unknown) => {
+    $('status').textContent = `Webamp failed to mount: ${String(
+      err instanceof Error ? err.message : err,
+    )}`;
+  });
+
 // Debug vis: 75 classic bars plus the oscilloscope trace. Colors follow
 // the stock viscolor palette vibe until real viscolor.txt support (M3).
 const canvas = $('vis') as HTMLCanvasElement;

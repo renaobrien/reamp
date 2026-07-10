@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "@reamp/adapters": "workspace:*",
-    "@reamp/vis-engine": "workspace:*"
+    "@reamp/vis-engine": "workspace:*",
+    "webamp": "^2.3.1"
   },
   "devDependencies": {
     "electron": "^43.1.0",
