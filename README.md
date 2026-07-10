@@ -1,61 +1,73 @@
 # Nostalgia
 
-A Winamp 2.9 style player that controls Spotify (Premium) and Apple Music,
-with visualizations driven by the actual audio: classic spectrum and
-oscilloscope, plus Milkdrop via Butterchurn. macOS first, Windows in phase 2,
-Vision Pro in phase 3.
+A Winamp 2.9 style player that controls Spotify and Apple Music, with
+visualizations driven by the actual audio: classic spectrum and
+oscilloscope, plus Milkdrop via Butterchurn. macOS first.
 
 Load your 2003-era `.wsz` skin, hit play, and the bars move to the real music.
 
 The docs in `docs/` use the working title "Reamp"; the project is Nostalgia.
 
-## Design constraints
+## How it works
 
-Two platform facts shape the whole architecture:
+Two facts shape the design:
 
-1. Spotify locked down its platform in February 2026. New apps get
-   Development Mode only: a 5-user allowlist, a reduced endpoint set, and no
-   audio analysis API at all. So Nostalgia is personal-use, open-source
-   software. You bring your own client ID and you need Premium.
-2. Both services stream DRM-encrypted audio, so nothing can read the raw
+1. Both services stream DRM-encrypted audio, so no program can read the raw
    stream. The visualizer analyzes the system's audio output instead
    (loopback capture via a ScreenCaptureKit sidecar). The captured signal is
    used for analysis only and is never written to disk.
+2. Spotify locked down its API in February 2026 (Development Mode only,
+   5-user allowlist per client ID, no audio analysis endpoints). So the API
+   is not the primary integration. The primary integration does not touch it.
 
-Details in [docs/reamp-overview-brief.md](docs/reamp-overview-brief.md),
-[docs/reamp-prd.md](docs/reamp-prd.md), and
-[docs/reamp-technical-spec.md](docs/reamp-technical-spec.md).
+## Two modes
+
+**Desktop control (v1, the default).** Nostalgia drives the official
+Spotify and Music apps already on your Mac through their AppleScript
+interfaces, and visualizes whatever the system is playing. Zero setup: no
+API keys, no developer accounts, no Premium requirement. Transport
+controls, current-track metadata, and (for Apple Music) full playlist
+browsing all work. Spotify playlist browsing is not exposed by its
+scripting interface; that one feature needs API mode.
+
+**API mode (optional, later).** In-app playback: Nostalgia itself becomes a
+Spotify Connect device (Web Playback SDK) and an Apple Music player
+(MusicKit JS). Costs real friction: a bring-your-own Spotify client ID plus
+Premium, an Apple Developer membership ($99/yr) for the MusicKit token, and
+a Widevine-capable Electron build (castLabs ECS). The auth plumbing for
+this mode is already built and tested; the playback shell is deferred.
 
 ## Status
 
-Pre-M0 scaffold.
+Pre-M1 scaffold. All logic below is written and unit tested; nothing has a
+UI yet, and the AppleScript adapters need verification on a real Mac.
 
 | Milestone | What | State |
 |---|---|---|
-| M0 | castLabs ECS Electron spike: one Spotify and one Apple Music track playing, proving the DRM path | next up |
+| M0 | Desktop-control adapters for Spotify.app and Music.app | code done, needs macOS verification |
 | M1 | Swift ScreenCaptureKit sidecar to PCM ring buffer to live FFT | not started |
-| M2 | Webamp embedded, Spotify adapter wired to transport, marquee, playlist | not started |
-| M3 | Apple Music adapter parity and source switcher | not started |
-| M4 | Classic vis window (viscolor.txt aware) and detachable Butterchurn | not started |
-| M5 | Settings, onboarding, skin drag-drop, packaging, notarization: v1 | not started |
+| M2 | Electron shell, Webamp embedded, adapters wired to transport, marquee, playlist | not started |
+| M3 | Classic vis window (viscolor.txt aware) and detachable Butterchurn | not started |
+| M4 | Settings, onboarding, skin drag-drop, packaging, notarization: v1 | not started |
+| M5+ | API mode: castLabs ECS spike, Web Playback SDK, MusicKit JS | later, optional |
 
-Working and tested today: the `SourceAdapter` contract, the vis-engine math
-(FFT, 75-band spectrum, oscilloscope, SharedArrayBuffer PCM ring buffer),
-the complete Spotify PKCE auth flow (loopback server on 127.0.0.1, code
-exchange, refresh), the sidecar PCM wire protocol, and the MusicKit token
-minting script.
+Working and tested today: both desktop-control adapters, the
+`SourceAdapter` contract, the vis-engine math (FFT, 75-band spectrum,
+oscilloscope, SharedArrayBuffer PCM ring buffer), the sidecar PCM wire
+protocol, the complete Spotify PKCE auth flow for API mode, and the
+MusicKit token minting script.
 
 ## Repo layout
 
 ```
-apps/desktop/        Electron shell (castLabs ECS from M0)
-  src/main/          main process: OAuth, safeStorage, sidecar manager
-  src/renderer/      Webamp host, adapters, vis, settings (from M2)
+apps/desktop/        Electron shell (M2)
+  src/main/          main process: osascript runner, OAuth, sidecar manager
+  src/renderer/      Webamp host, adapters, vis, settings (M2)
   sidecar/           Swift ScreenCaptureKit audio capture (M1)
-packages/adapters/   SourceAdapter contract, Spotify and Apple Music impls
+packages/adapters/   SourceAdapter contract, desktop-control + API adapters
 packages/vis-engine/ FFT, spectrum bands, oscilloscope, PCM ring buffer
 packages/skins/      default skin and .wsz helpers
-scripts/             gen-apple-token.ts (offline MusicKit JWT)
+scripts/             gen-apple-token.ts (offline MusicKit JWT, API mode)
 docs/                brief, PRD, tech spec
 ```
 
@@ -70,22 +82,21 @@ pnpm test
 Node 22 or newer, pnpm 10 or newer. Conventions and platform rules live in
 [CLAUDE.md](CLAUDE.md).
 
-### Minting an Apple Music developer token
+## API mode setup (only if you want in-app playback)
 
-Requires an Apple Developer Program membership and a MusicKit `.p8` key.
-The key is gitignored; never commit it.
+Spotify: create an app at developer.spotify.com (free, Development Mode),
+set the redirect URI to `http://127.0.0.1:8888/callback` (Spotify requires
+`127.0.0.1`, not `localhost`), and paste the client ID into settings. The
+account needs Premium. Each user of an open-source build does this for
+themselves; the 5-user allowlist is per client ID, so nobody shares quota.
+
+Apple Music: requires an Apple Developer Program membership and a MusicKit
+`.p8` key (gitignored; never commit it):
 
 ```sh
 node --experimental-strip-types scripts/gen-apple-token.ts \
   --key ~/keys/AuthKey_ABC123DEFG.p8 --key-id ABC123DEFG --team-id TEAM456789
 ```
-
-### Bringing your own Spotify client ID
-
-Create an app at developer.spotify.com (Development Mode) and set the
-redirect URI to `http://127.0.0.1:8888/callback`. Spotify requires
-`127.0.0.1`, not `localhost`. Paste the client ID into the settings pane
-once it exists (M2). The app owner needs an active Premium subscription.
 
 ## Skins
 
