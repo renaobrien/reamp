@@ -28,6 +28,10 @@ What lives here:
   browser, then loopback, then token exchange.
 - `sidecar/pcm-stream.ts`: the sidecar wire protocol (JSON header line
   plus f32le PCM), incremental parser and encoders for the M1 mock sidecar.
+- `sidecar/manager.ts`: sidecar process manager. Spawns the binary, feeds
+  decoded PCM to a sink, restarts on crash with a consecutive-failure cap,
+  and reports state (idle/starting/running/stopped/failed) for the
+  settings UI. Tested against real child processes faking the protocol.
 
-Still to come (M1 to M2): sidecar process manager, safeStorage vault,
-window snapping/always-on-top, Webamp host wiring.
+Still to come (M1 to M2): the Swift sidecar binary itself, safeStorage
+vault, window snapping/always-on-top, Webamp host wiring.
