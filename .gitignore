@@ -1,0 +1,19 @@
+# deps
+node_modules/
+
+# build output
+dist/
+out/
+*.tsbuildinfo
+
+# Swift sidecar
+apps/desktop/sidecar/.build/
+
+# secrets — never commit keys or tokens
+*.p8
+*.pem
+.env
+.env.*
+
+# OS / editor
+.DS_Store

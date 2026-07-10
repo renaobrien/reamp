@@ -1,0 +1,22 @@
+{
+  "name": "reamp",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "description": "A pixel-faithful Winamp 2.9 style player for Spotify and Apple Music, with real audio-reactive visualizations.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p scripts && pnpm -r --if-present typecheck",
+    "test": "vitest run scripts && pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
