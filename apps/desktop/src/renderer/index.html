@@ -14,7 +14,9 @@
         --bevel-dark: #050508;
         --accent: #00e5b0;
         --dim: #5a5a72;
-        font-size: 11px;
+        /* one knob scales the whole UI: readable on a laptop, legible from
+           a couch when the window is a TV */
+        font-size: clamp(11px, 0.55vw + 7px, 26px);
       }
       * { box-sizing: border-box; }
       body {
@@ -29,42 +31,55 @@
         font-family: "Menlo", "Consolas", monospace;
         text-transform: uppercase;
         letter-spacing: 0.08em;
+        font-size: 1rem;
         user-select: none;
         overflow: hidden;
       }
-      /* frameless-friendly drag strip */
       #titlebar {
-        height: 28px;
-        line-height: 28px;
+        height: 2.2rem;
+        line-height: 2.2rem;
         flex: none;
         text-align: center;
         color: var(--dim);
-        font-size: 10px;
+        font-size: 0.9rem;
         -webkit-app-region: drag;
       }
-      #webamp-container {
+      #stage {
         flex: 1;
         position: relative;
         min-height: 0;
       }
+      /* stage backdrops sit behind Webamp's windows */
+      #milkdrop-bg, #scene-bg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: none;
+        background: #04040a;
+      }
+      body.mode-milkdrop #milkdrop-bg { display: block; }
+      body.mode-scene #scene-bg { display: block; }
+      #webamp-container { position: absolute; inset: 0; }
+      #stage:fullscreen { background: #000; }
       #deck {
         flex: none;
-        margin: 0 8px 8px;
-        padding: 8px;
+        margin: 0 0.7rem 0.7rem;
+        padding: 0.7rem;
         background: var(--panel);
         border: 2px solid;
         border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
         display: grid;
-        grid-template-columns: auto 1fr;
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
         grid-template-rows: auto auto;
-        gap: 6px 12px;
+        gap: 0.5rem 1rem;
         align-items: center;
       }
       #vis {
         grid-row: 1 / span 2;
-        width: 598px; /* 2x logical, pixel-doubled */
-        height: 98px;
-        max-width: 100%;
+        width: 100%;
+        aspect-ratio: 299 / 49; /* logical vis grid, scaled crisply */
+        height: auto;
         image-rendering: pixelated;
         background: #000;
         border: 2px solid;
@@ -73,7 +88,7 @@
       }
       #readout {
         display: flex;
-        gap: 12px;
+        gap: 1rem;
         align-items: baseline;
         min-width: 0;
       }
@@ -85,8 +100,9 @@
         text-overflow: ellipsis;
         color: var(--accent);
       }
-      #time { color: var(--accent); flex: none; }
-      #controls { display: flex; gap: 6px; align-items: center; }
+      #time { color: var(--accent); flex: none; font-variant-numeric: tabular-nums; }
+      #controls { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+      .btn-group { display: flex; gap: 0.3rem; }
       button, select {
         -webkit-app-region: no-drag;
         background: var(--panel);
@@ -96,28 +112,68 @@
         font: inherit;
         letter-spacing: inherit;
         text-transform: inherit;
-        padding: 3px 12px;
+        padding: 0.25rem 0.9rem;
         cursor: pointer;
       }
-      button:active {
+      button:active,
+      button[aria-pressed="true"] {
         border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+        color: #fff;
       }
-      #status { color: var(--dim); margin-left: auto; text-align: right; min-height: 1.2em; }
+      button:focus-visible, select:focus-visible {
+        outline: 1px dashed var(--accent);
+        outline-offset: 2px;
+      }
+      #preset-controls { display: none; }
+      body.mode-milkdrop #preset-controls { display: flex; }
+      #stage-name { min-width: 9ch; }
+      #status {
+        color: var(--dim);
+        margin-left: auto;
+        text-align: right;
+        min-height: 1.2em;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        max-width: 40ch;
+      }
+      /* narrow windows: stack the deck */
+      @media (max-width: 640px) {
+        #deck { grid-template-columns: 1fr; }
+        #vis { grid-row: auto; }
+      }
     </style>
   </head>
-  <body>
+  <body id="stage-root">
     <div id="titlebar">Reamp</div>
-    <div id="webamp-container"></div>
+    <div id="stage">
+      <canvas id="milkdrop-bg"></canvas>
+      <canvas id="scene-bg"></canvas>
+      <div id="webamp-container"></div>
+    </div>
     <section id="deck">
-      <canvas id="vis" title="Click to toggle spectrum / oscilloscope"></canvas>
+      <canvas id="vis" title="Click to cycle vis modes" tabindex="0"></canvas>
       <div id="readout">
         <span id="marquee">Play something in Spotify or Music</span>
         <span id="time">0:00 / 0:00</span>
       </div>
       <div id="controls">
-        <button id="prev" title="Previous">⏮</button>
-        <button id="playpause" title="Play/Pause">▶</button>
-        <button id="next" title="Next">⏭</button>
+        <span class="btn-group">
+          <button id="prev" title="Previous">⏮</button>
+          <button id="playpause" title="Play/Pause">▶</button>
+          <button id="next" title="Next">⏭</button>
+        </span>
+        <span class="btn-group" role="group" aria-label="Stage visuals">
+          <button id="stage-prev" title="Previous visual">‹</button>
+          <button id="stage-name" title="Cycle stage visual">Off</button>
+          <button id="stage-next" title="Next visual">›</button>
+          <button id="fullscreen" title="Fullscreen visuals">⛶</button>
+        </span>
+        <span class="btn-group" id="preset-controls">
+          <button id="preset-prev" title="Previous preset">‹</button>
+          <button id="preset-random" title="Random preset">?</button>
+          <button id="preset-next" title="Next preset">›</button>
+        </span>
         <select id="source" title="Source">
           <option value="spotify">Spotify</option>
           <option value="apple-music">Apple Music</option>

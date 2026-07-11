@@ -61,8 +61,12 @@ parser with the canonical default palette, the sidecar wire protocol and
 process manager with a mock sidecar (bars move on any machine), the
 Electron shell with IPC transport chain and Webamp media backend, the
 classic vis deck (pixel-authentic blocks, click to toggle spectrum and
-scope), the detachable Milkdrop window (Butterchurn fed raw loopback PCM,
-245 bundled presets, auto-cycling, fullscreen), the feedback button, the
+scope), three original math-driven stage scenes (Tunnel, Plasma, Swarm:
+spectral band energies and beat-flux detection driving fps-independent
+physics), the detachable Milkdrop window (Butterchurn fed raw loopback PCM,
+245 bundled presets, auto-cycling, fullscreen), stage visuals behind the
+player with a fullscreen option, a responsive layout that scales from
+laptop to TV, the feedback button, the
 complete Spotify PKCE auth flow for API mode, and the MusicKit token
 minting script.
 
