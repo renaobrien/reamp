@@ -27,7 +27,7 @@ downstream is trustworthy until this passes.
 ## 2. Browser demo (sanity check, no Electron)
 
 ```sh
-pnpm --filter @reamp/desktop demo
+pnpm demo
 ```
 
 Open the printed URL. Expect: Webamp renders, bars dance to procedural
@@ -39,7 +39,7 @@ This is the same code verified headless, so surprises here are unlikely.
 ```sh
 pnpm approve-builds                  # select electron; allows its binary download
 pnpm install                         # actually downloads it after approval
-pnpm --filter @reamp/desktop start
+pnpm app
 ```
 
 Expect: the Reamp window opens, deck bars dance (mock audio), the stage
@@ -80,7 +80,7 @@ When it builds:
 ```sh
 cd ../../..
 REAMP_SIDECAR_BIN=apps/desktop/sidecar/.build/release/capture-sidecar \
-  pnpm --filter @reamp/desktop start
+  pnpm app
 ```
 
 macOS will prompt for Screen Recording permission (that is how SCK gates
