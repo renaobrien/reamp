@@ -46,10 +46,14 @@ gates audio capture. Nothing is recorded or written to disk.
 
 ### Using it
 
-- Transport buttons, the source dropdown, and the Playlists button live in
-  the deck below the player. Playlist browsing works for Apple Music;
-  Spotify's desktop interface does not expose playlists, so pick those in
-  Spotify itself.
+- Play, skip, seek, and volume live on the player itself, or on the
+  keyboard. The deck underneath covers what the skin has no buttons for:
+  stage visuals, player size, playlists, settings, and the source
+  switcher. Playlist browsing works for Apple Music; Spotify's desktop
+  interface does not expose playlists, so pick those in Spotify itself.
+- The player's EQ and PL buttons open the equalizer and playlist windows
+  (they start closed). Closing the player with its X hides it; the
+  "player" button in the top left corner brings it back.
 - The `<` and `>` buttons cycle the stage visuals behind the player;
   the square button goes fullscreen. Click the small vis to flip between
   spectrum and oscilloscope. Cmd+M opens Milkdrop in its own window

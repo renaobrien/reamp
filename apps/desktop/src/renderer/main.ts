@@ -64,14 +64,16 @@ window.reamp.onPlayerState((event: PlayerStateEvent) => {
   $('marquee').textContent = `${state.track.artist} - ${state.track.title}`;
   $('time').textContent = `${fmtTime(state.positionMs)} / ${fmtTime(state.track.durationMs)}`;
   setStatus(`${source} · ${state.playing ? 'playing' : 'paused'}`);
-  ($('playpause') as HTMLButtonElement).textContent = state.playing ? '❚❚' : '▶';
 });
 
-$('prev').addEventListener('click', () => send({ action: 'previous' }));
-$('playpause').addEventListener('click', () =>
-  send(playing ? { action: 'pause' } : { action: 'play' }),
-);
-$('next').addEventListener('click', () => send({ action: 'next' }));
+// Transport lives on the skin (and the keyboard); the deck is for what
+// the skin has no buttons for. The restore button brings the player
+// back after its close button hides it.
+$('player-restore').addEventListener('click', () => {
+  webampRef?.reopen();
+  ($('player-restore') as HTMLButtonElement).hidden = true;
+  setTimeout(() => applyZoom(currentZoom), 50); // re-center about the reopened cluster
+});
 $('source').addEventListener('change', (e) => {
   const id = (e.target as HTMLSelectElement).value;
   void window.reamp.setSource(id).then(() => setStatus(`${id} · switched`));
@@ -205,7 +207,13 @@ window.addEventListener('resize', () => {
 
 import('./webamp-host.js')
   .then(async ({ mountWebamp }) => {
-    webampRef = await mountWebamp(window.reamp, $('webamp-container'), setStatus);
+    webampRef = await mountWebamp(window.reamp, $('webamp-container'), {
+      onNotice: setStatus,
+      onClose: () => {
+        ($('player-restore') as HTMLButtonElement).hidden = false;
+        setStatus('player closed');
+      },
+    });
     hookWebampTransport();
     const settings = await window.reamp.getSettings().catch(() => ({}) as PersistedSettings);
     eqNoticeDismissed = settings.eqNoticeDismissed === true;
@@ -390,25 +398,52 @@ void window.reamp
 
 // ---- capture status + settings (R9: honest degradation) ----------------------
 
+let captureBad = false;
+let demoAudio = false;
+
+/** One chip, worst news first: a broken pipeline beats the demo note. */
+function refreshCaptureChip(): void {
+  const chip = $('capture');
+  chip.classList.toggle('visible', captureBad || demoAudio);
+  if (captureBad) return; // text set by renderCaptureState
+  if (demoAudio) {
+    chip.textContent = 'demo audio ♪';
+    chip.title =
+      'The visuals are dancing to built-in demo music, not what you are playing. Click for the one-time setup that fixes that.';
+  }
+}
+
 function renderCaptureState(event: { state: string; detail?: string }): void {
   const chip = $('capture');
-  const bad = event.state === 'failed' || event.state === 'stopped';
-  chip.classList.toggle('visible', bad);
-  if (bad) chip.textContent = `capture ${event.state}`;
+  captureBad = event.state === 'failed' || event.state === 'stopped';
+  if (captureBad) {
+    chip.textContent = `capture ${event.state}`;
+    chip.title = event.detail ?? '';
+  }
+  refreshCaptureChip();
   $('set-capture').textContent = event.detail
     ? `${event.state}: ${event.detail.split('\n')[0]}`
     : event.state;
 }
+
+$('capture').addEventListener('click', () => {
+  $('settings-panel').classList.add('open');
+});
 
 window.reamp.onVisState(renderCaptureState);
 void window.reamp.getVisState().then(renderCaptureState).catch(() => {});
 void window.reamp
   .getAppInfo()
   .then((info) => {
+    demoAudio = info.demoAudio;
+    refreshCaptureChip();
     $('set-sidecar').textContent = info.sidecar;
     $('set-version').textContent = `${info.version} ${info.commit} (${info.mode})`;
     $('set-logfile').textContent = info.logFile;
     $('set-logfile').title = info.logFile;
+    const helperRow = $('set-helper-row');
+    helperRow.hidden = !info.demoAudio;
+    $('set-helper').hidden = !info.demoAudio;
   })
   .catch(() => {});
 

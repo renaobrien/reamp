@@ -9,14 +9,26 @@
  */
 import Webamp from 'webamp';
 import type { ReampApi } from '../preload.js';
-import { createReampMediaClass } from './reamp-media.js';
+import { createReampMediaClass, type StopGuard } from './reamp-media.js';
+
+export interface MountWebampOptions {
+  onNotice?: (message: string) => void;
+  onEqTouched?: () => void;
+  /** Fired when the user clicks the skin's close button. */
+  onClose?: () => void;
+}
 
 export async function mountWebamp(
   bridge: ReampApi,
   container: HTMLElement,
-  onNotice?: (message: string) => void,
-  onEqTouched?: () => void,
+  opts: MountWebampOptions = {},
 ): Promise<Webamp> {
+  // Start with just the main window, centered a touch above the middle.
+  // EQ and playlist begin closed and open in place via the skin's own
+  // EQ / PL buttons; three stacked windows at boot read as clutter.
+  const mainTop = Math.max(8, Math.round(window.innerHeight * 0.42 - 58));
+  const mainLeft = Math.max(8, Math.round(window.innerWidth / 2 - 137));
+  const stopGuard: StopGuard = { suppressStop: false };
   const webamp = new Webamp({
     initialTracks: [
       {
@@ -25,8 +37,22 @@ export async function mountWebamp(
         metaData: { artist: 'Reamp', title: 'Play something in Spotify or Music' },
       },
     ],
-    __customMediaClass: createReampMediaClass(bridge, onNotice, onEqTouched),
+    windowLayout: {
+      main: { position: { top: mainTop, left: mainLeft } },
+      equalizer: { position: { top: mainTop + 116, left: mainLeft }, closed: true },
+      playlist: { position: { top: mainTop + 232, left: mainLeft }, closed: true },
+    },
+    __customMediaClass: createReampMediaClass(bridge, opts.onNotice, opts.onEqTouched, stopGuard),
   });
+  // Webamp dispatches STOP between CLOSE_REQUESTED and CLOSE_WINAMP;
+  // flag that window so hiding the player never pauses the real music.
+  webamp.onWillClose(() => {
+    stopGuard.suppressStop = true;
+    setTimeout(() => {
+      stopGuard.suppressStop = false;
+    }, 250);
+  });
+  if (opts.onClose !== undefined) webamp.onClose(opts.onClose);
 
   let currentTrackKey = '';
   let lastVolume = -1;

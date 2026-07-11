@@ -117,6 +117,29 @@ describe('ReampMedia', () => {
     expect(commands).toEqual([]);
   });
 
+  it('suppresses the stop that Webamp fires while closing its windows', async () => {
+    const commands: TransportCommand[] = [];
+    const bridge = {
+      transport: (cmd: TransportCommand) => {
+        commands.push(cmd);
+        return Promise.resolve();
+      },
+      onPlayerState: () => {},
+      onVisFrame: () => {},
+    } as unknown as ReampApi;
+    const guard = { suppressStop: false };
+    const MediaClass = createReampMediaClass(bridge, undefined, undefined, guard) as new () => MediaLike;
+    const media = new MediaClass();
+
+    guard.suppressStop = true; // onWillClose sets this before STOP arrives
+    media.stop();
+    expect(commands).toEqual([]); // hiding the player leaves the music alone
+
+    guard.suppressStop = false;
+    media.stop(); // the skin's real stop button still pauses
+    expect(commands).toEqual([{ action: 'pause' }]);
+  });
+
   it('reports every EQ touch but shows the status notice once', () => {
     const bridge = {
       transport: () => Promise.resolve(),

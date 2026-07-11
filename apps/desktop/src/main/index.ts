@@ -290,6 +290,7 @@ void app.whenReady().then(async () => {
       sidecar.binaryPath === process.execPath
         ? 'built-in demo music (capture helper not installed; see README)'
         : sidecar.binaryPath,
+    demoAudio: sidecar.binaryPath === process.execPath,
     logFile: logger?.logFile ?? '',
   }));
   ipcMain.handle(IPC.sendFeedback, () => {

@@ -151,6 +151,7 @@ export function installDemoBridge(): void {
         commit: 'dev',
         mode: 'desktop-control' as const,
         sidecar: 'procedural music',
+        demoAudio: true,
         logFile: '(browser console)',
       }),
     sendFeedback: () => {

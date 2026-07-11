@@ -150,11 +150,21 @@
         font-size: 0.85rem;
         color: var(--dim);
       }
+      #player-restore {
+        position: absolute;
+        left: 0.7rem;
+        top: 0.4rem;
+        z-index: 6;
+        padding: 0.15rem 0.6rem;
+        font-size: 0.85rem;
+        color: var(--accent);
+      }
       /* Webamp zoom: scale factor set via inline style on #webamp */
       #capture {
         color: #ff8a5a;
         flex: none;
         display: none;
+        cursor: pointer;
       }
       #capture.visible { display: inline; }
       #settings-panel {
@@ -261,6 +271,7 @@
     <div id="titlebar">Reamp</div>
     <div id="stage">
       <button id="deck-toggle" title="Show or hide the control deck (D)">deck ▾</button>
+      <button id="player-restore" hidden title="Reopen the player windows">player ▾</button>
       <canvas id="milkdrop-bg"></canvas>
       <canvas id="scene-bg"></canvas>
       <div id="webamp-container"></div>
@@ -269,6 +280,7 @@
         <dl>
           <dt>Capture</dt><dd id="set-capture">…</dd>
           <dt>Audio source</dt><dd id="set-sidecar" title="What the visuals are listening to">…</dd>
+          <dt id="set-helper-row" hidden>Real music</dt><dd id="set-helper" hidden title="Run this once in the repo folder, then relaunch: the visuals will follow whatever your Mac is playing">cd apps/desktop/sidecar &amp;&amp; swift build -c release</dd>
           <dt>Log file</dt><dd id="set-logfile">…</dd>
           <dt>Version</dt><dd id="set-version">…</dd>
         </dl>
@@ -300,11 +312,6 @@
         <span id="time">0:00 / 0:00</span>
       </div>
       <div id="controls">
-        <span class="btn-group">
-          <button id="prev" title="Previous track (Left arrow)">⏮</button>
-          <button id="playpause" title="Play or pause (Space)">▶</button>
-          <button id="next" title="Next track (Right arrow)">⏭</button>
-        </span>
         <span class="btn-group" role="group" aria-label="Stage visuals">
           <button id="stage-prev" title="Previous stage visual (behind the player)">‹</button>
           <button id="stage-name" title="Stage visual behind the player: Off, Tunnel, Plasma, Swarm, Fractal, Milkdrop (V cycles)">Off</button>
