@@ -7,6 +7,11 @@
  * The spectral features are simple and honest: bass/mid/treble are mean
  * energies over thirds of the log-spaced bands, and beats are detected
  * as positive bass-energy flux above a rolling average.
+ *
+ * Depth is real in all three: Tunnel projects rings from z-space with a
+ * wandering vanishing point, Swarm runs parallax layers where distance
+ * scales speed, size, and brightness, and Plasma composites a slow deep
+ * field under the audio-driven foreground with an edge vignette.
  */
 import type { VisFrameEvent } from '../shared/ipc.js';
 
@@ -16,6 +21,10 @@ export interface SpectralFeatures {
   treble: number;
   /** 1.0 on the frame a beat lands, decaying toward 0. */
   beat: number;
+  /** Spectral centroid 0..1: where the energy lives, dark to bright. */
+  centroid: number;
+  /** Mean band level 0..1: how loud the moment is. */
+  loudness: number;
 }
 
 /** Rolling beat detector: positive bass flux vs its own recent average. */
@@ -43,7 +52,18 @@ export class FeatureExtractor {
     if (flux > avg * 2.2 && flux > 0.02) this.beatEnv = 1;
     else this.beatEnv *= 0.88;
 
-    return { bass, mid, treble, beat: this.beatEnv };
+    let weighted = 0;
+    let total = 0;
+    for (let i = 0; i < frame.levels.length; i++) {
+      weighted += frame.levels[i]! * i;
+      total += frame.levels[i]!;
+    }
+    const centroid = total > 0 ? weighted / total / (frame.levels.length - 1) : 0;
+    // mean band level is tiny for real music (most bands near zero), so
+    // scale into a usable 0..1 perceptual-ish range
+    const loudness = Math.min(1, (total / frame.levels.length) * 4);
+
+    return { bass, mid, treble, beat: this.beatEnv, centroid, loudness };
   }
 }
 
@@ -63,13 +83,16 @@ export interface Scene {
 }
 
 /**
- * TUNNEL: the waveform wrapped into rings that fly outward from the
- * center. Ring speed rides the bass, hue rides the treble, and beats
- * kick the whole field. Additive blending + per-frame fade = neon trails.
+ * TUNNEL: waveform rings and a starfield projected from real z-space
+ * toward a vanishing point that drifts with the mids. Bass drives flight
+ * speed, beats punch it, distant geometry dims and cools toward violet,
+ * near geometry burns bright. Additive blending gives the neon glow.
  */
 class TunnelScene implements Scene {
   readonly name = 'Tunnel';
-  private rings: Array<{ r: number; hue: number; amp: number; rot: number }> = [];
+  private static readonly Z_FAR = 8;
+  private rings: Array<{ z: number; hue: number; amp: number; rot: number }> = [];
+  private stars: Array<{ a: number; rr: number; z: number }> = [];
 
   render(
     ctx: CanvasRenderingContext2D,
@@ -81,58 +104,91 @@ class TunnelScene implements Scene {
     dt: number,
   ): void {
     const dtn = Math.min(6, dt / 16.7);
+    const ZF = TunnelScene.Z_FAR;
     ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = `rgba(4, 4, 10, ${Math.min(0.5, 0.22 * dtn)})`;
+    ctx.fillStyle = `rgba(3, 3, 12, ${Math.min(0.6, 0.28 * dtn)})`;
     ctx.fillRect(0, 0, w, h);
 
-    if (this.rings.length === 0 || this.rings.at(-1)!.r > Math.min(w, h) * 0.05) {
+    // the vanishing point wanders with the music
+    const cx = w / 2 + Math.sin(t * 0.00037) * w * 0.09 * (0.4 + f.mid * 2);
+    const cy = h / 2 + Math.cos(t * 0.00029) * h * 0.09 * (0.4 + f.mid * 2);
+    const speed = (0.9 + f.bass * 3.2 + f.beat * 4.5) * 0.022 * dtn;
+    const minDim = Math.min(w, h);
+    ctx.globalCompositeOperation = 'lighter';
+
+    // starfield behind the rings, same projection
+    if (this.stars.length === 0) {
+      for (let i = 0; i < 110; i++) {
+        this.stars.push({ a: Math.random() * Math.PI * 2, rr: 0.25 + Math.random(), z: 0.2 + Math.random() * ZF });
+      }
+    }
+    for (const s of this.stars) {
+      s.z -= speed * 1.4;
+      if (s.z <= 0.15) {
+        s.z = ZF;
+        s.a = Math.random() * Math.PI * 2;
+      }
+      const pr = (minDim * 0.9 * s.rr) / s.z;
+      const size = Math.min(4, 1.6 / s.z + f.beat);
+      const light = Math.min(80, 25 + 90 / s.z);
+      ctx.fillStyle = `hsla(${220 - f.treble * 60}, 60%, ${light}%, ${Math.min(1, 1.4 / s.z)})`;
+      ctx.fillRect(cx + Math.cos(s.a) * pr, cy + Math.sin(s.a) * pr, size, size);
+    }
+
+    // spawn rings with even z spacing; hue frozen at birth from the
+    // spectral centroid, so the tunnel is a scrolling history of the
+    // music's brightness (warm bass moments, cool bright ones)
+    if (this.rings.length === 0 || this.rings.at(-1)!.z < ZF - 0.55) {
       this.rings.push({
-        r: Math.min(w, h) * 0.01,
-        hue: 165 - f.treble * 140 + Math.sin(t * 0.0002) * 30,
-        amp: 0.35 + f.mid * 2,
+        z: ZF,
+        hue: (25 + f.centroid * 275 + t * 0.004) % 360,
+        amp: 0.3 + f.mid * 2 + f.beat,
         rot: t * 0.0004,
       });
     }
 
-    ctx.globalCompositeOperation = 'lighter';
-    const cx = w / 2;
-    const cy = h / 2;
-    const speed = 1 + f.bass * 5 + f.beat * 6;
     const points = frame.wave.length;
-
     for (const ring of this.rings) {
-      ring.r *= Math.pow(1 + 0.02 * speed, dtn);
-      const alpha = Math.max(0, 1 - ring.r / (Math.max(w, h) * 0.75));
-      if (alpha <= 0) continue;
-      ctx.strokeStyle = `hsla(${ring.hue}, 95%, ${55 + f.beat * 25}%, ${alpha * 0.9})`;
-      ctx.lineWidth = Math.max(1.5, ring.r * 0.025);
+      ring.z -= speed;
+      if (ring.z <= 0.12) continue;
+      const pr = (minDim * 0.5) / ring.z;
+      const near = Math.min(1, 1.6 / ring.z); // 0 far .. 1 near
+      // depth cue: distant rings cool toward violet and dim; loudness
+      // lifts the whole tunnel's brightness
+      const hue = (ring.hue - (1 - near) * 70 + 360) % 360;
+      const light = 22 + near * 30 + f.beat * 22 + f.loudness * 30;
+      ctx.strokeStyle = `hsla(${hue}, 95%, ${Math.min(78, light)}%, ${0.25 + near * 0.65})`;
+      ctx.lineWidth = Math.max(1.5, pr * 0.03);
       ctx.beginPath();
       for (let i = 0; i <= points; i++) {
         const wv = frame.wave[i % points]!;
         const a = (i / points) * 2 * Math.PI + ring.rot;
-        const r = ring.r * (1 + wv * ring.amp * 0.35);
+        const r = pr * (1 + wv * ring.amp * 0.3);
         const x = cx + Math.cos(a) * r;
-        const y = cy + Math.sin(a) * r * 0.82; // slight squash: perspective
+        const y = cy + Math.sin(a) * r * 0.85;
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
       ctx.stroke();
     }
-    this.rings = this.rings.filter((ring) => ring.r < Math.max(w, h));
+    this.rings = this.rings.filter((ring) => ring.z > 0.12);
   }
 }
 
 /**
- * PLASMA: a classic four-term sine interference field computed at low
- * resolution and scaled up. Band energies bend the field's spatial
- * frequencies; the palette breathes with the bass.
+ * PLASMA: two interference fields composited for depth. A slow, deep
+ * indigo background layer drifts beneath a bright audio-bent foreground,
+ * and a radial vignette curves the edges away. Band energies bend the
+ * foreground's spatial frequencies; beats flash its lightness.
  */
 class PlasmaScene implements Scene {
   readonly name = 'Plasma';
-  private readonly cols = 168;
-  private readonly rows = 96;
-  private buffer: OffscreenCanvas | HTMLCanvasElement | null = null;
-  private image: ImageData | null = null;
+  private front: HTMLCanvasElement | null = null;
+  private back: HTMLCanvasElement | null = null;
+  private frontImage: ImageData | null = null;
+  private backImage: ImageData | null = null;
+  private vignette: CanvasGradient | null = null;
+  private vignetteFor = '';
 
   render(
     ctx: CanvasRenderingContext2D,
@@ -143,56 +199,104 @@ class PlasmaScene implements Scene {
     t: number,
     _dt: number,
   ): void {
-    if (this.buffer === null) {
-      this.buffer = document.createElement('canvas');
-      this.buffer.width = this.cols;
-      this.buffer.height = this.rows;
+    const FW = 168;
+    const FH = 96;
+    const BW = 84;
+    const BH = 48;
+    if (this.front === null) {
+      this.front = document.createElement('canvas');
+      this.front.width = FW;
+      this.front.height = FH;
+      this.back = document.createElement('canvas');
+      this.back.width = BW;
+      this.back.height = BH;
     }
-    const bctx = this.buffer.getContext('2d') as CanvasRenderingContext2D;
-    this.image ??= bctx.createImageData(this.cols, this.rows);
-    const px = this.image.data;
-
     const ts = t * 0.001;
-    const a = 0.09 + f.bass * 0.12;
-    const b = 0.11 + f.mid * 0.1;
-    const c = 0.07 + f.treble * 0.16;
-    const baseHue = (ts * 12) % 360;
 
-    for (let y = 0; y < this.rows; y++) {
-      for (let x = 0; x < this.cols; x++) {
-        const dx = x - this.cols / 2;
-        const dy = y - this.rows / 2;
+    // deep layer: slow, dark, blue-violet, drifting the other way
+    const bctx = this.back!.getContext('2d') as CanvasRenderingContext2D;
+    this.backImage ??= bctx.createImageData(BW, BH);
+    const bp = this.backImage.data;
+    for (let y = 0; y < BH; y++) {
+      for (let x = 0; x < BW; x++) {
         const v =
-          Math.sin(x * a + ts) +
-          Math.sin(y * b - ts * 1.31) +
-          Math.sin((x + y) * c * 0.6 + ts * 0.7) +
-          Math.sin(Math.sqrt(dx * dx + dy * dy) * (0.15 + f.beat * 0.1) - ts * 2);
-        // v in [-4, 4] -> hue offset and lightness
-        const hue = (baseHue + v * 28 + 360) % 360;
-        const light = 0.28 + (v + 4) * 0.055 + f.beat * 0.12;
-        const [r, g, bl] = hslToRgb(hue / 360, 0.85, Math.min(0.72, light));
-        const i = (y * this.cols + x) * 4;
-        px[i] = r;
-        px[i + 1] = g;
-        px[i + 2] = bl;
-        px[i + 3] = 255;
+          Math.sin(x * 0.13 - ts * 0.4) +
+          Math.sin(y * 0.17 + ts * 0.31) +
+          Math.sin((x - y) * 0.09 - ts * 0.22);
+        const hue = 245 + v * 18;
+        const [r, g, b] = hslToRgb(((hue + 360) % 360) / 360, 0.7, 0.1 + (v + 3) * 0.03);
+        const i = (y * BW + x) * 4;
+        bp[i] = r;
+        bp[i + 1] = g;
+        bp[i + 2] = b;
+        bp[i + 3] = 255;
       }
     }
-    bctx.putImageData(this.image, 0, 0);
+    bctx.putImageData(this.backImage, 0, 0);
+
+    // foreground: audio-bent field with a drifting rainbow palette
+    const fctx = this.front!.getContext('2d') as CanvasRenderingContext2D;
+    this.frontImage ??= fctx.createImageData(FW, FH);
+    const fp = this.frontImage.data;
+    const a = 0.09 + f.bass * 0.12;
+    const b2 = 0.11 + f.mid * 0.1;
+    const c = 0.07 + f.treble * 0.16;
+    // palette anchored to the music's brightness, drifting slowly
+    const baseHue = (25 + f.centroid * 275 + ts * 6) % 360;
+    for (let y = 0; y < FH; y++) {
+      for (let x = 0; x < FW; x++) {
+        const dx = x - FW / 2;
+        const dy = y - FH / 2;
+        const v =
+          Math.sin(x * a + ts) +
+          Math.sin(y * b2 - ts * 1.31) +
+          Math.sin((x + y) * c * 0.6 + ts * 0.7) +
+          Math.sin(Math.sqrt(dx * dx + dy * dy) * (0.15 + f.beat * 0.1) - ts * 2);
+        const hue = (baseHue + v * 34 + 360) % 360;
+        const light = 0.18 + (v + 4) * 0.05 + f.beat * 0.16 + f.loudness * 0.22;
+        const [r, g, b] = hslToRgb(hue / 360, 0.9, Math.min(0.7, light));
+        const i = (y * FW + x) * 4;
+        fp[i] = r;
+        fp[i + 1] = g;
+        fp[i + 2] = b;
+        fp[i + 3] = 255;
+      }
+    }
+    fctx.putImageData(this.frontImage, 0, 0);
+
     ctx.globalCompositeOperation = 'source-over';
     ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(this.buffer, 0, 0, w, h);
+    ctx.globalAlpha = 1;
+    ctx.drawImage(this.back!, 0, 0, w, h);
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = 0.85;
+    ctx.drawImage(this.front!, 0, 0, w, h);
+    ctx.globalAlpha = 1;
+
+    // vignette curves the edges into darkness
+    const key = `${w}x${h}`;
+    if (this.vignette === null || this.vignetteFor !== key) {
+      const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.72);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(1, 'rgba(0,0,8,0.75)');
+      this.vignette = g;
+      this.vignetteFor = key;
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = this.vignette;
+    ctx.fillRect(0, 0, w, h);
   }
 }
 
 /**
- * SWARM: a few hundred particles in a swirl field. The tangential pull
- * rides the mids, beats fire a radial shockwave, and each particle's
- * color encodes its speed. Trails come from the per-frame fade.
+ * SWARM: particles in a swirl field across three parallax depth layers.
+ * Distance scales speed, size, and brightness; hue comes from each
+ * particle's angle around the center, so the swarm is a rotating color
+ * wheel. Mids drive the swirl, beats fire radial shockwaves.
  */
 class SwarmScene implements Scene {
   readonly name = 'Swarm';
-  private particles: Array<{ x: number; y: number; vx: number; vy: number }> = [];
+  private particles: Array<{ x: number; y: number; vx: number; vy: number; z: number }> = [];
 
   render(
     ctx: CanvasRenderingContext2D,
@@ -200,22 +304,23 @@ class SwarmScene implements Scene {
     h: number,
     _frame: VisFrameEvent,
     f: SpectralFeatures,
-    _t: number,
+    t: number,
     dt: number,
   ): void {
     const dtn = Math.min(6, dt / 16.7);
     if (this.particles.length === 0) {
-      for (let i = 0; i < 420; i++) {
+      for (let i = 0; i < 460; i++) {
         this.particles.push({
           x: Math.random() * w,
           y: Math.random() * h,
           vx: 0,
           vy: 0,
+          z: 0.55 + Math.random() * 1.65, // 0.55 near .. 2.2 far
         });
       }
     }
     ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = `rgba(4, 4, 10, ${Math.min(0.5, 0.16 * dtn)})`;
+    ctx.fillStyle = `rgba(3, 3, 12, ${Math.min(0.5, 0.16 * dtn)})`;
     ctx.fillRect(0, 0, w, h);
     ctx.globalCompositeOperation = 'lighter';
 
@@ -225,16 +330,17 @@ class SwarmScene implements Scene {
     const pull = 0.012 + f.treble * 0.02;
     const kick = f.beat * 3.2;
     const scale = Math.min(w, h) / 500;
+    const hueSpin = t * 0.012;
 
     for (const p of this.particles) {
+      const depth = 1 / p.z; // near = big/fast/bright
       const dx = p.x - cx;
       const dy = p.y - cy;
       const d = Math.max(20, Math.hypot(dx, dy));
-      // swirl (tangential) + spring toward a bass-breathing orbit radius
-      const target = Math.min(w, h) * (0.18 + f.bass * 0.35);
+      const target = Math.min(w, h) * (0.16 + f.bass * 0.36) * p.z * 0.7;
       const radial = (target - d) * pull + kick;
-      p.vx += ((-dy / d) * swirl * 0.05 * scale + (dx / d) * radial * 0.08) * dtn;
-      p.vy += ((dx / d) * swirl * 0.05 * scale + (dy / d) * radial * 0.08) * dtn;
+      p.vx += ((-dy / d) * swirl * 0.05 * scale + (dx / d) * radial * 0.08) * dtn * depth;
+      p.vy += ((dx / d) * swirl * 0.05 * scale + (dy / d) * radial * 0.08) * dtn * depth;
       const damp = Math.pow(0.96, dtn);
       p.vx *= damp;
       p.vy *= damp;
@@ -246,9 +352,13 @@ class SwarmScene implements Scene {
       if (p.y > h) p.y -= h;
 
       const speed = Math.hypot(p.vx, p.vy);
-      const hue = 170 - Math.min(1, speed / (6 * scale)) * 150;
-      ctx.fillStyle = `hsla(${hue}, 95%, ${50 + f.beat * 25}%, 0.8)`;
-      const size = Math.max(1.5, 1.5 + speed * 0.4) * scale;
+      const angle = Math.atan2(dy, dx);
+      // color wheel offset by the music's brightness; quiet passages dim
+      const hue = ((angle * 180) / Math.PI + hueSpin + f.centroid * 120 + 360) % 360;
+      const light =
+        (30 + Math.min(1, speed / (6 * scale)) * 28 + f.beat * 18) * (0.5 + f.loudness * 1.4);
+      ctx.fillStyle = `hsla(${hue}, ${70 + depth * 25}%, ${light * Math.min(1, depth + 0.35)}%, ${0.35 + depth * 0.5})`;
+      const size = Math.max(1.2, (1.4 + speed * 0.35) * scale * depth * 1.6);
       ctx.fillRect(p.x, p.y, size, size);
     }
   }

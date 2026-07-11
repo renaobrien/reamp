@@ -78,7 +78,9 @@ live FFT, M2 Electron shell + Webamp + adapters wired, M3 vis windows
 (classic + Butterchurn), M4 ship v1 (settings, packaging, notarization),
 M5+ optional API mode (ECS spike, Web Playback SDK, MusicKit JS).
 
-Current state: M3 code-complete, pending on-device verification.
+Current state: M3 code-complete plus skin drag-and-drop, pending
+on-device verification. The Swift SCK sidecar has a full draft
+(sidecar/Sources) awaiting first compile on a Mac.
 Desktop-control adapters, the IPC transport chain (sandboxed renderer,
 typed preload bridge, AdapterHost), the Webamp host with the custom
 media backend (verified against webamp@2.3.1 shipped types), vis math

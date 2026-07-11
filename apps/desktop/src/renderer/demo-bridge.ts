@@ -13,11 +13,13 @@ import { SpectrumAnalyzer, waveformPoints } from '@reamp/vis-engine';
 import type { ReampApi } from '../preload.js';
 import type { PlayerStateEvent, VisFrameEvent } from '../shared/ipc.js';
 
+/** Each pretend track has its own tempo, key, and arpeggio, so switching
+ * tracks audibly (visibly) changes everything the scenes react to. */
 const DEMO_TRACKS = [
-  { title: 'It Really Whips', artist: 'Demo Llama', album: 'Loopback Sessions', durationMs: 187_000 },
-  { title: 'Loopback To The Future', artist: 'Demo Llama', album: 'Loopback Sessions', durationMs: 214_000 },
-  { title: '75 Bands Of Green And Red', artist: 'Demo Llama', album: 'Loopback Sessions', durationMs: 243_000 },
-  { title: 'Peak Caps Falling Slowly', artist: 'Demo Llama', album: 'Loopback Sessions', durationMs: 199_000 },
+  { title: 'It Really Whips', artist: 'Demo Llama', album: 'Loopback Sessions', durationMs: 187_000, bpm: 126, root: 55, arp: [0, 3, 7, 10] },
+  { title: 'Loopback To The Future', artist: 'Demo Llama', album: 'Loopback Sessions', durationMs: 214_000, bpm: 98, root: 41.2, arp: [0, 5, 7, 12] },
+  { title: '75 Bands Of Green And Red', artist: 'Demo Llama', album: 'Loopback Sessions', durationMs: 243_000, bpm: 140, root: 61.7, arp: [0, 4, 7, 11] },
+  { title: 'Peak Caps Falling Slowly', artist: 'Demo Llama', album: 'Loopback Sessions', durationMs: 199_000, bpm: 82, root: 49, arp: [0, 3, 8, 12] },
 ];
 
 const SAMPLE_RATE = 48_000;
@@ -102,22 +104,41 @@ export function installDemoBridge(): void {
   };
   (window as unknown as { reamp: ReampApi }).reamp = api;
 
-  // The same synth the mock sidecar plays: a sweeping tone with a pulse.
+  // A tiny procedural band, so the visuals have real music to react to:
+  // four-on-the-floor kick, offbeat hats, a bassline, and an arpeggio.
   const analyzer = new SpectrumAnalyzer({ fftSize: FFT_SIZE, sampleRate: SAMPLE_RATE, bands: 75 });
   const pcm = new Float32Array(FFT_SIZE);
   const wave = new Float32Array(75);
   let clock = 0;
 
   const sample = (n: number): number => {
+    const track = DEMO_TRACKS[trackIndex]!;
     const seconds = n / SAMPLE_RATE;
-    const sweep = 110 * Math.pow(2, (seconds % 8) / 2);
-    const pulse = 0.55 + 0.45 * Math.pow(Math.max(0, Math.sin(TWO_PI * seconds * 2)), 4);
-    return (
-      pulse *
-      (0.6 * Math.sin((TWO_PI * sweep * n) / SAMPLE_RATE) +
-        0.25 * Math.sin((TWO_PI * sweep * 1.5 * n) / SAMPLE_RATE) +
-        0.05 * (Math.random() * 2 - 1))
-    );
+    const beatLen = 60 / track.bpm;
+    const beatPhase = (seconds % beatLen) / beatLen; // 0..1 within the beat
+    const beatIndex = Math.floor(seconds / beatLen);
+
+    // kick: exponentially decaying pitch-dropping sine on every beat
+    const kickEnv = Math.exp(-beatPhase * 9);
+    const kick = Math.sin(TWO_PI * (48 + 60 * Math.exp(-beatPhase * 14)) * seconds) * kickEnv;
+
+    // bass: root note, ducked by the kick (fake sidechain pumps everything)
+    const duck = 1 - kickEnv * 0.75;
+    const bassNote = track.root * (beatIndex % 8 < 4 ? 1 : 0.749); // I .. bVII
+    const bass = Math.sin(TWO_PI * bassNote * seconds) * 0.5 * duck;
+
+    // arpeggio: 16ths stepping through the track's chord, two octaves up
+    const step = Math.floor(seconds / (beatLen / 4)) % track.arp.length;
+    const arpFreq = track.root * 4 * Math.pow(2, track.arp[step]! / 12);
+    const arpEnv = Math.exp(-((seconds % (beatLen / 4)) / (beatLen / 4)) * 5);
+    const arp = Math.sin(TWO_PI * arpFreq * seconds) * 0.3 * arpEnv * duck;
+
+    // hats: filtered-ish noise bursts on the offbeats
+    const offbeat = (seconds + beatLen / 2) % beatLen;
+    const hatEnv = Math.exp(-(offbeat / beatLen) * 26);
+    const hat = (Math.random() * 2 - 1) * 0.22 * hatEnv;
+
+    return Math.max(-1, Math.min(1, kick * 0.9 + bass + arp + hat));
   };
 
   setInterval(() => {
