@@ -16,6 +16,9 @@ What lives here:
   blocks with gutters, the 16-step viscolor gradient, falling peak caps,
   click to toggle spectrum/oscilloscope. Palette comes from
   `@reamp/skins` (canonical default until skins load their own).
+- `skin-drop.ts`: drop a .wsz anywhere on the window; Webamp reskins and
+  the deck vis recolors from the skin's viscolor.txt (tested against
+  synthetic archives, including case-insensitive and nested lookups).
 - `main.ts` + `index.html`: the deck layout (Webamp above, vis deck
   below), fallback transport controls, source switcher, readout.
 - `milkdrop.ts` + `milkdrop.html`: the detachable Milkdrop window.

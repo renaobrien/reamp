@@ -39,6 +39,18 @@ describe('FeatureExtractor', () => {
       expect(fx.extract(quiet).beat).toBeLessThanOrEqual(0.0001 + 0);
     }
   });
+
+  it('reports centroid low for bassy frames and high for bright ones', () => {
+    const fx = new FeatureExtractor();
+    expect(fx.extract(bassy).centroid).toBeLessThan(0.35);
+    expect(fx.extract(trebly).centroid).toBeGreaterThan(0.65);
+  });
+
+  it('reports loudness scaled into 0..1 and capped', () => {
+    const fx = new FeatureExtractor();
+    expect(fx.extract(quiet).loudness).toBeCloseTo(0.2, 5); // 0.05 mean * 4
+    expect(fx.extract(frame(new Array(75).fill(0.9))).loudness).toBe(1);
+  });
 });
 
 describe('createScenes', () => {

@@ -68,11 +68,30 @@ $('source').addEventListener('change', (e) => {
 
 // ---- Webamp on the stage ---------------------------------------------------
 
+let webampRef: import('webamp').default | null = null;
+
 import('./webamp-host.js')
-  .then(({ mountWebamp }) => mountWebamp(window.reamp, $('webamp-container')))
+  .then(async ({ mountWebamp }) => {
+    webampRef = await mountWebamp(window.reamp, $('webamp-container'));
+  })
   .catch((err: unknown) => {
     setStatus(`Webamp failed to mount: ${String(err instanceof Error ? err.message : err)}`);
   });
+
+// ---- skin drag-and-drop (R2) -------------------------------------------------
+
+import('./skin-drop.js')
+  .then(({ installSkinDrop }) => {
+    installSkinDrop(document.body, {
+      onSkin: (url, name) => {
+        webampRef?.setSkinFromUrl(url);
+        setStatus(`skin: ${name}`);
+      },
+      onColors: (colors) => deckVis.setColors(colors),
+      onError: setStatus,
+    });
+  })
+  .catch(() => {});
 
 // ---- deck vis (always on, bars/scope like the original) --------------------
 
@@ -96,7 +115,14 @@ let stageIndex = 0;
 let milkdrop: MilkdropEngine | null = null;
 let sceneRaf: number | null = null;
 let latestFrame: VisFrameEvent | null = null;
-let latestFeatures: SpectralFeatures = { bass: 0, mid: 0, treble: 0, beat: 0 };
+let latestFeatures: SpectralFeatures = {
+  bass: 0,
+  mid: 0,
+  treble: 0,
+  beat: 0,
+  centroid: 0,
+  loudness: 0,
+};
 
 function sizeCanvas(canvas: HTMLCanvasElement): void {
   canvas.width = stage.clientWidth * devicePixelRatio;
