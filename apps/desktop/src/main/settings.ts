@@ -20,6 +20,9 @@ export interface SettingsData {
   /** Stage visual by name ("Off", "Tunnel", ...), robust to reordering. */
   stageMode?: string;
   windowBounds?: WindowBounds;
+  /** Webamp scale factor (1..3). */
+  webampZoom?: number;
+  deckHidden?: boolean;
 }
 
 const SETTINGS_FILE = 'settings.json';

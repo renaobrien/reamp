@@ -70,7 +70,8 @@ export class VisService {
 
   start(): void {
     this.manager.start();
-    const intervalMs = 1000 / (this.opts.frameRateHz ?? 30);
+    // 60Hz: every display frame gets fresh audio, the vis reads tight
+    const intervalMs = 1000 / (this.opts.frameRateHz ?? 60);
     this.frameTimer ??= setInterval(() => this.tick(), intervalMs);
   }
 

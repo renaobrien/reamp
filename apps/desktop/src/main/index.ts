@@ -9,7 +9,7 @@
  * Runs from the esbuild bundle: dist/main/index.cjs, preload at
  * dist/preload.cjs, renderer at dist/renderer/.
  */
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BrowserWindow, Menu, app, globalShortcut, ipcMain, screen, shell } from 'electron';
 import { MusicDesktopAdapter, SpotifyDesktopAdapter } from '@reamp/adapters';
@@ -19,6 +19,7 @@ import { buildFeedbackUrl } from './feedback.js';
 import { runOsaScript } from './osascript.js';
 import { broadcastToWindows, registerIpc } from './register-ipc.js';
 import { IPC } from '../shared/ipc.js';
+import { Logger } from './logger.js';
 import { serveRenderer, type RendererServer } from './renderer-server.js';
 import { SettingsStore } from './settings.js';
 import { VisService } from './vis-service.js';
@@ -30,6 +31,7 @@ import { VisService } from './vis-service.js';
  * in the first on-device run.
  */
 let renderer: RendererServer | null = null;
+let logger: Logger | null = null;
 
 /**
  * Sidecar resolution order: REAMP_SIDECAR_BIN, then the binary packaged
@@ -49,15 +51,48 @@ function resolveSidecar(): { binaryPath: string; args: string[]; env?: NodeJS.Pr
 }
 
 function feedbackUrl(host: AdapterHost): string {
-  return buildFeedbackUrl({
-    labels: ['feedback'],
-    diagnostics: formatDiagnostics({
+  let logTail = '';
+  try {
+    const text = readFileSync(logger!.logFile, 'utf8');
+    logTail = text.slice(-2800);
+  } catch {
+    logTail = '(no log yet)';
+  }
+  const diagnostics = [
+    formatDiagnostics({
       appVersion: app.getVersion(),
       mode: 'desktop-control',
       adapterStatus: [`active: ${host.getSource()}`],
       ...collectSystemInfo(),
     }),
-  });
+    '',
+    'A screenshot was saved locally and revealed in Finder; drag it into this issue.',
+    '',
+    'Recent log:',
+    '```',
+    logTail,
+    '```',
+  ].join('\n');
+  return buildFeedbackUrl({ labels: ['feedback'], diagnostics });
+}
+
+/** Screenshot the focused window into the logs folder and reveal it, so
+ * "I cannot copy/paste the error" is never the end of the road. */
+async function captureFeedbackScreenshot(): Promise<void> {
+  const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+  if (win === undefined || logger === null) return;
+  try {
+    const image = await win.webContents.capturePage();
+    const file = join(
+      logger.logFile,
+      `../feedback-${new Date().toISOString().replace(/[:.]/g, '-')}.png`,
+    );
+    writeFileSync(file, image.toPNG());
+    shell.showItemInFolder(file);
+    logger.log('main', `feedback screenshot saved: ${file}`);
+  } catch (err) {
+    logger.log('main', `feedback screenshot failed: ${String(err)}`);
+  }
 }
 
 function buildMenu(host: AdapterHost): Menu {
@@ -82,7 +117,16 @@ function buildMenu(host: AdapterHost): Menu {
       submenu: [
         {
           label: 'Send Feedback…',
-          click: () => void shell.openExternal(feedbackUrl(host)),
+          click: () => {
+            void captureFeedbackScreenshot();
+            void shell.openExternal(feedbackUrl(host));
+          },
+        },
+        {
+          label: 'Open Logs Folder',
+          click: () => {
+            if (logger !== null) shell.showItemInFolder(logger.logFile);
+          },
         },
         {
           label: 'Winamp Skin Museum',
@@ -116,6 +160,7 @@ function openMilkdropWindow(): void {
   milkdropWindow.on('closed', () => {
     milkdropWindow = null;
   });
+  logger?.captureWebContents(milkdropWindow.webContents, 'milkdrop');
   void milkdropWindow.loadURL(`${renderer!.url}/milkdrop.html`);
 }
 
@@ -144,10 +189,20 @@ function createWindow(settings: SettingsStore): void {
     },
   });
   win.on('close', () => settings.save({ windowBounds: win.getBounds() }));
+  logger?.captureWebContents(win.webContents, 'renderer');
   void win.loadURL(`${renderer!.url}/index.html`);
 }
 
 void app.whenReady().then(async () => {
+  logger = new Logger(app.getPath('userData'));
+  logger.log('main', `Reamp ${app.getVersion()} starting (electron ${process.versions.electron})`);
+  process.on('uncaughtException', (err) =>
+    logger?.log('main:uncaught', String(err instanceof Error ? err.stack : err)),
+  );
+  process.on('unhandledRejection', (reason) =>
+    logger?.log('main:unhandledRejection', String(reason)),
+  );
+
   renderer = await serveRenderer(join(__dirname, '../renderer'));
   const windows = (): BrowserWindow[] => BrowserWindow.getAllWindows();
   const settings = new SettingsStore(app.getPath('userData'));
@@ -171,6 +226,7 @@ void app.whenReady().then(async () => {
     onStateChange: (state, detail) => {
       lastVisState = { state, detail };
       visStateBroadcast(lastVisState);
+      logger?.log('sidecar', detail === undefined ? state : `${state}: ${detail}`);
     },
   });
   vis.start();
@@ -178,9 +234,19 @@ void app.whenReady().then(async () => {
   ipcMain.handle(IPC.getAppInfo, () => ({
     version: app.getVersion(),
     mode: 'desktop-control',
-    sidecar: sidecar.binaryPath === process.execPath ? 'mock (synthetic audio)' : sidecar.binaryPath,
+    sidecar:
+      sidecar.binaryPath === process.execPath
+        ? 'built-in demo music (capture helper not installed; see README)'
+        : sidecar.binaryPath,
+    logFile: logger?.logFile ?? '',
   }));
-  ipcMain.handle(IPC.sendFeedback, () => shell.openExternal(feedbackUrl(host)));
+  ipcMain.handle(IPC.sendFeedback, () => {
+    void captureFeedbackScreenshot();
+    return shell.openExternal(feedbackUrl(host));
+  });
+  ipcMain.handle(IPC.openLogs, () => {
+    if (logger !== null) shell.showItemInFolder(logger.logFile);
+  });
   app.on('will-quit', () => {
     vis.stop();
     renderer?.close();

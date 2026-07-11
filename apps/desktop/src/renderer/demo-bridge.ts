@@ -146,11 +146,17 @@ export function installDemoBridge(): void {
     onVisState: (cb) => setTimeout(() => cb({ state: 'running', detail: 'demo synth' }), 0),
     getVisState: () => Promise.resolve({ state: 'running' as const, detail: 'demo synth' }),
     getAppInfo: () =>
-      Promise.resolve({ version: 'browser demo', mode: 'desktop-control' as const, sidecar: 'procedural music' }),
+      Promise.resolve({
+        version: 'browser demo',
+        mode: 'desktop-control' as const,
+        sidecar: 'procedural music',
+        logFile: '(browser console)',
+      }),
     sendFeedback: () => {
       window.open('https://github.com/renaobrien/reamp/issues/new/choose', '_blank');
       return Promise.resolve();
     },
+    openLogs: () => Promise.resolve(),
   };
   (window as unknown as { reamp: ReampApi }).reamp = api;
 
