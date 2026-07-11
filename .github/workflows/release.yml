@@ -1,0 +1,55 @@
+name: Release
+
+# Builds the packaged mac app on a real macOS runner and publishes a
+# GitHub Release. The in-app Check for Updates button finds these
+# releases, so users update by downloading, not by rebuilding.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # First-ever compile target for the SCK capture helper. Best
+      # effort: a release without it still works (demo audio + the
+      # in-app setup hint), so a Swift failure must not block the app.
+      - name: Build capture helper
+        id: sidecar
+        continue-on-error: true
+        working-directory: apps/desktop/sidecar
+        run: swift build -c release
+
+      - name: Package app (unsigned)
+        working-directory: apps/desktop
+        env:
+          # no signing identity on the runner; skip discovery
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          pnpm build
+          ./node_modules/.bin/electron-builder --config electron-builder.config.cjs --mac --arm64 --x64
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            apps/desktop/release/*.dmg
+            apps/desktop/release/*.zip
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          body: |
+            Unsigned build: right-click Reamp.app and choose Open on first launch.
+            Apple Silicon Macs want the arm64 files; Intel Macs the plain ones.
+            ${{ steps.sidecar.outcome == 'success' && 'The audio capture helper is bundled: visuals follow your real music after the one-time Screen Recording permission.' || 'This build ships without the capture helper (visuals run on demo audio until you build it from source).' }}

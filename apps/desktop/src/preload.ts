@@ -6,10 +6,12 @@ import { contextBridge, ipcRenderer } from 'electron';
 import {
   IPC,
   type AppInfo,
+  type InstallStart,
   type PersistedSettings,
   type PlayerStateEvent,
   type TransportCommand,
   type UpdateInfo,
+  type UpdateProgressEvent,
   type VisFrameEvent,
   type VisStateEvent,
 } from './shared/ipc.js';
@@ -42,6 +44,10 @@ const api = {
   openLogs: (): Promise<void> => ipcRenderer.invoke(IPC.openLogs),
   checkUpdate: (): Promise<UpdateInfo> => ipcRenderer.invoke(IPC.checkUpdate),
   openUpdatePage: (): Promise<void> => ipcRenderer.invoke(IPC.openUpdatePage),
+  installUpdate: (): Promise<InstallStart> => ipcRenderer.invoke(IPC.installUpdate),
+  onUpdateProgress: (cb: (event: UpdateProgressEvent) => void): void => {
+    ipcRenderer.on(IPC.updateProgress, (_e, event: UpdateProgressEvent) => cb(event));
+  },
 };
 
 export type ReampApi = typeof api;

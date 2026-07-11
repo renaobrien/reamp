@@ -30,6 +30,21 @@ const HEADERS = {
   'user-agent': 'reamp-update-check',
 };
 
+export interface ReleaseAsset {
+  name: string;
+  browser_download_url: string;
+}
+
+/** The zip electron-builder makes for this machine: mac zips carry
+ * "-mac" and Apple Silicon ones carry "arm64" in the file name. */
+export function pickMacZipAsset(
+  assets: ReleaseAsset[],
+  arch: string = process.arch,
+): ReleaseAsset | undefined {
+  const macZips = assets.filter((a) => a.name.endsWith('.zip') && a.name.includes('mac'));
+  return macZips.find((a) => a.name.includes('arm64') === (arch === 'arm64'));
+}
+
 /** Compare dotted versions numerically; tolerates a leading v. Returns
  * >0 when a is newer, 0 when equal, <0 when older. */
 export function compareVersions(a: string, b: string): number {
@@ -57,7 +72,11 @@ export async function checkForUpdates(options: UpdateCheckOptions): Promise<Upda
     // Packaged releases win when they exist: that path needs no toolchain.
     const releaseRes = await fetcher(`${api}/releases/latest`, { headers: HEADERS });
     if (releaseRes.ok) {
-      const release = (await releaseRes.json()) as { tag_name?: string; html_url?: string };
+      const release = (await releaseRes.json()) as {
+        tag_name?: string;
+        html_url?: string;
+        assets?: ReleaseAsset[];
+      };
       const tag = release.tag_name ?? '';
       if (tag.length > 0 && compareVersions(tag, currentVersion) > 0) {
         return {
@@ -65,8 +84,9 @@ export async function checkForUpdates(options: UpdateCheckOptions): Promise<Upda
           current,
           latest: tag,
           kind: 'release',
-          detail: 'A packaged release is ready to download.',
+          detail: 'A packaged release is ready.',
           url: release.html_url ?? `https://github.com/${repo}/releases/latest`,
+          downloadUrl: pickMacZipAsset(release.assets ?? [])?.browser_download_url,
         };
       }
     }
