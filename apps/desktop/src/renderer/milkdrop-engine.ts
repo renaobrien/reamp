@@ -12,6 +12,7 @@ import butterchurnModule from 'butterchurn';
 import type { ButterchurnVisualizer } from 'butterchurn';
 import basePackModule from 'butterchurn-presets';
 import extraPackModule from 'butterchurn-presets/lib/butterchurnPresetsExtra.min.js';
+import { BeatAdvance } from './beat-advance.js';
 import { PresetCycler } from './preset-cycler.js';
 
 function unwrap<T>(mod: unknown): T {
@@ -37,7 +38,10 @@ export interface MilkdropEngineOptions {
   canvas: HTMLCanvasElement;
   /** Called whenever the preset changes, with its name. */
   onPreset?: (name: string) => void;
+  /** Wall-clock fallback advance; beats usually get there first. */
   autoAdvanceMs?: number;
+  /** Minimum hold before a beat may switch presets. */
+  beatHoldMs?: number;
 }
 
 export class MilkdropEngine {
@@ -46,12 +50,14 @@ export class MilkdropEngine {
   private readonly cycler: PresetCycler;
   private readonly opts: MilkdropEngineOptions;
   private readonly timeByteArray = new Uint8Array(SAMPLES).fill(128);
+  private readonly beatAdvance: BeatAdvance;
   private rafId: number | null = null;
   private autoTimer: ReturnType<typeof setInterval> | null = null;
 
   /** Throws with a readable message when WebGL2 is unavailable. */
   constructor(opts: MilkdropEngineOptions) {
     this.opts = opts;
+    this.beatAdvance = new BeatAdvance(opts.beatHoldMs ?? 20_000);
     if (opts.canvas.getContext('webgl2') === null) {
       throw new Error('Milkdrop needs WebGL2, which this browser/GPU refused to provide');
     }
@@ -88,10 +94,20 @@ export class MilkdropEngine {
     }
   }
 
+  /** Beat-synced advancing (P1): a strong beat after the hold flips presets. */
+  beat(strength: number, nowMs = performance.now()): void {
+    if (this.beatAdvance.shouldAdvance(nowMs, strength)) {
+      this.cycler.next();
+      this.loadCurrent(1.2); // faster blend so the cut lands near the beat
+      this.rearmAutoAdvance();
+    }
+  }
+
   next(): void {
     this.cycler.next();
     this.loadCurrent();
     this.rearmAutoAdvance();
+    this.beatAdvance.notifyManualChange(performance.now());
   }
 
   previous(): void {
