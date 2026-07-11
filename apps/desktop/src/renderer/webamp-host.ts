@@ -11,7 +11,11 @@ import Webamp from 'webamp';
 import type { ReampApi } from '../preload.js';
 import { createReampMediaClass } from './reamp-media.js';
 
-export async function mountWebamp(bridge: ReampApi, container: HTMLElement): Promise<Webamp> {
+export async function mountWebamp(
+  bridge: ReampApi,
+  container: HTMLElement,
+  onNotice?: (message: string) => void,
+): Promise<Webamp> {
   const webamp = new Webamp({
     initialTracks: [
       {
@@ -20,7 +24,7 @@ export async function mountWebamp(bridge: ReampApi, container: HTMLElement): Pro
         metaData: { artist: 'Reamp', title: 'Play something in Spotify or Music' },
       },
     ],
-    __customMediaClass: createReampMediaClass(bridge),
+    __customMediaClass: createReampMediaClass(bridge, onNotice),
   });
 
   let currentTrackKey = '';

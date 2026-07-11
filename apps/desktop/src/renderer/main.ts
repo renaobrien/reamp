@@ -72,7 +72,7 @@ let webampRef: import('webamp').default | null = null;
 
 import('./webamp-host.js')
   .then(async ({ mountWebamp }) => {
-    webampRef = await mountWebamp(window.reamp, $('webamp-container'));
+    webampRef = await mountWebamp(window.reamp, $('webamp-container'), setStatus);
     // restore the persisted skin once Webamp is up
     const saved = await window.reamp.getSavedSkin();
     if (saved !== null && saved.byteLength > 0) {
@@ -244,6 +244,88 @@ void window.reamp
     }
   })
   .catch(() => {});
+
+// ---- playlist browser --------------------------------------------------------
+
+const panel = $('playlist-panel');
+const itemsEl = $('playlist-items');
+const backBtn = $('playlist-back') as HTMLButtonElement;
+
+function renderItems(
+  entries: Array<{ label: string; onClick?: () => void }>,
+  title: string,
+  showBack: boolean,
+): void {
+  $('playlist-title').textContent = title;
+  backBtn.hidden = !showBack;
+  itemsEl.replaceChildren(
+    ...entries.map(({ label, onClick }) => {
+      const li = document.createElement('li');
+      li.textContent = label;
+      if (onClick === undefined) li.className = 'note';
+      else li.addEventListener('click', onClick);
+      return li;
+    }),
+  );
+}
+
+async function showPlaylists(): Promise<void> {
+  renderItems([{ label: 'loading…' }], 'Playlists', false);
+  try {
+    const lists = (await window.reamp.getPlaylists()) as Array<{
+      id: string;
+      name: string;
+      trackCount: number;
+    }>;
+    if (lists.length === 0) {
+      renderItems([{ label: 'no playlists found' }], 'Playlists', false);
+      return;
+    }
+    renderItems(
+      lists.map((p) => ({
+        label: `${p.name} (${p.trackCount})`,
+        onClick: () => void showTracks(p.id, p.name),
+      })),
+      'Playlists',
+      false,
+    );
+  } catch (err) {
+    // Spotify desktop-control mode lands here by design: its scripting
+    // interface cannot enumerate playlists. Honest message, not a spinner.
+    renderItems(
+      [{ label: String(err instanceof Error ? err.message : err) }],
+      'Playlists',
+      false,
+    );
+  }
+}
+
+async function showTracks(id: string, name: string): Promise<void> {
+  renderItems([{ label: 'loading…' }], name, true);
+  try {
+    const tracks = (await window.reamp.getPlaylistTracks(id)) as Array<{
+      uri: string;
+      title: string;
+      artist: string;
+    }>;
+    renderItems(
+      tracks.map((t) => ({
+        label: `${t.artist} - ${t.title}`,
+        onClick: () => send({ action: 'play', uri: t.uri }),
+      })),
+      name,
+      true,
+    );
+  } catch (err) {
+    renderItems([{ label: String(err instanceof Error ? err.message : err) }], name, true);
+  }
+}
+
+$('playlists').addEventListener('click', () => {
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) void showPlaylists();
+});
+backBtn.addEventListener('click', () => void showPlaylists());
 
 // ---- frames ----------------------------------------------------------------
 

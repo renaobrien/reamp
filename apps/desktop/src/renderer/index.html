@@ -137,6 +137,41 @@
         text-overflow: ellipsis;
         max-width: 40ch;
       }
+      #playlist-panel {
+        position: absolute;
+        right: 0.7rem;
+        bottom: 0.7rem;
+        width: min(28rem, 90vw);
+        max-height: 60%;
+        overflow-y: auto;
+        background: var(--panel);
+        border: 2px solid;
+        border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+        padding: 0.6rem;
+        display: none;
+        z-index: 5;
+      }
+      #playlist-panel.open { display: block; }
+      #playlist-panel h3 {
+        margin: 0 0 0.5rem;
+        font-size: 1rem;
+        font-weight: normal;
+        color: var(--dim);
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+      }
+      #playlist-panel h3 button { padding: 0.1rem 0.6rem; }
+      #playlist-items { list-style: none; margin: 0; padding: 0; }
+      #playlist-items li {
+        padding: 0.35rem 0.4rem;
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #playlist-items li:hover { background: #22223a; color: #fff; }
+      #playlist-items li.note { color: var(--dim); cursor: default; white-space: normal; }
       /* narrow windows: stack the deck */
       @media (max-width: 640px) {
         #deck { grid-template-columns: 1fr; }
@@ -150,6 +185,10 @@
       <canvas id="milkdrop-bg"></canvas>
       <canvas id="scene-bg"></canvas>
       <div id="webamp-container"></div>
+      <aside id="playlist-panel" aria-label="Playlists">
+        <h3><span id="playlist-title">Playlists</span><button id="playlist-back" hidden>‹ Back</button></h3>
+        <ul id="playlist-items"></ul>
+      </aside>
     </div>
     <section id="deck">
       <canvas id="vis" title="Click to cycle vis modes" tabindex="0"></canvas>
@@ -174,6 +213,7 @@
           <button id="preset-random" title="Random preset">?</button>
           <button id="preset-next" title="Next preset">›</button>
         </span>
+        <button id="playlists" title="Browse playlists">Playlists</button>
         <select id="source" title="Source">
           <option value="spotify">Spotify</option>
           <option value="apple-music">Apple Music</option>

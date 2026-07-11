@@ -26,7 +26,17 @@ export interface ReampMediaInstance {
   readonly playing: boolean;
 }
 
-export function createReampMediaClass(bridge: ReampApi): WebampMediaClass {
+export function createReampMediaClass(
+  bridge: ReampApi,
+  onNotice?: (message: string) => void,
+): WebampMediaClass {
+  let eqNoticeShown = false;
+  const eqNotice = (): void => {
+    if (eqNoticeShown) return;
+    eqNoticeShown = true;
+    onNotice?.('EQ and balance are visual-only for streaming sources (DRM audio cannot be processed)');
+  };
+
   return class ReampMedia implements ReampMediaInstance {
     private listeners = new Map<string, Listener[]>();
     private positionMs = 0;
@@ -93,9 +103,16 @@ export function createReampMediaClass(bridge: ReampApi): WebampMediaClass {
 
     // EQ and balance are visual-only for streaming sources (spec: no
     // audio tap on DRM playback; we do not process the audio path).
-    setBalance(_balance: number): void {}
-    setPreamp(_value: number): void {}
-    setEqBand(_band: number, _value: number): void {}
+    // Touching them surfaces a one-time honest explanation (R9).
+    setBalance(_balance: number): void {
+      eqNotice();
+    }
+    setPreamp(_value: number): void {
+      eqNotice();
+    }
+    setEqBand(_band: number, _value: number): void {
+      eqNotice();
+    }
     disableEq(): void {}
     enableEq(): void {}
 
