@@ -73,6 +73,14 @@ let webampRef: import('webamp').default | null = null;
 import('./webamp-host.js')
   .then(async ({ mountWebamp }) => {
     webampRef = await mountWebamp(window.reamp, $('webamp-container'));
+    // restore the persisted skin once Webamp is up
+    const saved = await window.reamp.getSavedSkin();
+    if (saved !== null && saved.byteLength > 0) {
+      const { extractViscolors } = await import('./skin-drop.js');
+      const colors = await extractViscolors(saved).catch(() => null);
+      if (colors !== null) deckVis.setColors(colors);
+      webampRef.setSkinFromUrl(URL.createObjectURL(new Blob([saved])));
+    }
   })
   .catch((err: unknown) => {
     setStatus(`Webamp failed to mount: ${String(err instanceof Error ? err.message : err)}`);
@@ -83,9 +91,10 @@ import('./webamp-host.js')
 import('./skin-drop.js')
   .then(({ installSkinDrop }) => {
     installSkinDrop(document.body, {
-      onSkin: (url, name) => {
+      onSkin: (url, name, data) => {
         webampRef?.setSkinFromUrl(url);
         setStatus(`skin: ${name}`);
+        void window.reamp.saveSkin(data).catch(() => {});
       },
       onColors: (colors) => deckVis.setColors(colors),
       onError: setStatus,
@@ -188,10 +197,11 @@ async function activateMilkdrop(): Promise<void> {
   milkdrop.start();
 }
 
-function setStageMode(index: number): void {
+function setStageMode(index: number, persist = true): void {
   stageIndex = (index + STAGE_MODES.length) % STAGE_MODES.length;
   const mode = STAGE_MODES[stageIndex]!;
   $('stage-name').textContent = mode;
+  if (persist) void window.reamp.saveSettings({ stageMode: mode }).catch(() => {});
   document.body.classList.toggle('mode-milkdrop', mode === 'Milkdrop');
   document.body.classList.toggle('mode-scene', currentSceneIndex() !== null);
 
@@ -222,6 +232,18 @@ $('fullscreen').addEventListener('click', () => {
   if (document.fullscreenElement === null) void stage.requestFullscreen();
   else void document.exitFullscreen();
 });
+
+// restore the persisted stage mode and source selection
+void window.reamp
+  .getSettings()
+  .then((s) => {
+    const idx = STAGE_MODES.indexOf(s.stageMode as (typeof STAGE_MODES)[number]);
+    if (idx > 0) setStageMode(idx, false);
+    if (s.source === 'spotify' || s.source === 'apple-music') {
+      ($('source') as HTMLSelectElement).value = s.source;
+    }
+  })
+  .catch(() => {});
 
 // ---- frames ----------------------------------------------------------------
 

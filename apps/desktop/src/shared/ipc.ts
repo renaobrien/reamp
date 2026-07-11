@@ -25,7 +25,20 @@ export const IPC = {
   playerState: 'reamp:player-state',
   /** main -> renderer: VisFrameEvent, ~30Hz while capture runs */
   visFrame: 'reamp:vis-frame',
+  /** invoke() -> SettingsData */
+  getSettings: 'reamp:get-settings',
+  /** invoke(Partial<SettingsData>) -> void */
+  saveSettings: 'reamp:save-settings',
+  /** invoke() -> ArrayBuffer | null (the persisted .wsz) */
+  getSavedSkin: 'reamp:get-saved-skin',
+  /** invoke(ArrayBuffer) -> void */
+  saveSkin: 'reamp:save-skin',
 } as const;
+
+export interface PersistedSettings {
+  source?: string;
+  stageMode?: string;
+}
 
 export interface VisFrameEvent {
   /** Spectrum bar levels, 0..1. */
