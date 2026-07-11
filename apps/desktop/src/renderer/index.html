@@ -260,7 +260,7 @@
   <body id="stage-root">
     <div id="titlebar">Reamp</div>
     <div id="stage">
-      <button id="deck-toggle" title="Show or hide the control deck">deck ▾</button>
+      <button id="deck-toggle" title="Show or hide the control deck (D)">deck ▾</button>
       <canvas id="milkdrop-bg"></canvas>
       <canvas id="scene-bg"></canvas>
       <div id="webamp-container"></div>
@@ -301,20 +301,21 @@
       </div>
       <div id="controls">
         <span class="btn-group">
-          <button id="prev" title="Previous">⏮</button>
-          <button id="playpause" title="Play/Pause">▶</button>
-          <button id="next" title="Next">⏭</button>
+          <button id="prev" title="Previous track (Left arrow)">⏮</button>
+          <button id="playpause" title="Play or pause (Space)">▶</button>
+          <button id="next" title="Next track (Right arrow)">⏭</button>
         </span>
         <span class="btn-group" role="group" aria-label="Stage visuals">
           <button id="stage-prev" title="Previous stage visual (behind the player)">‹</button>
-          <button id="stage-name" title="Stage visual: click to cycle through Off, Tunnel, Plasma, Swarm, Milkdrop">Off</button>
+          <button id="stage-name" title="Stage visual behind the player: Off, Tunnel, Plasma, Swarm, Milkdrop (V cycles)">Off</button>
           <button id="stage-next" title="Next stage visual (behind the player)">›</button>
-          <button id="fullscreen" title="Fullscreen the stage visuals (Esc to exit)">⛶</button>
+          <button id="fullscreen" title="Fullscreen the stage visuals (F; Esc to exit)">⛶</button>
         </span>
-        <select id="zoom" title="Player size: scales the Winamp windows">
+        <select id="zoom" title="Player size: scales the Winamp windows. Fit picks the largest size the window allows">
           <option value="1">1x</option>
           <option value="2">2x</option>
           <option value="3">3x</option>
+          <option value="fit">Fit</option>
         </select>
         <span class="btn-group" id="preset-controls">
           <button id="preset-prev" title="Previous preset">‹</button>

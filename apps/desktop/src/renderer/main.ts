@@ -136,13 +136,15 @@ eqDialog.addEventListener('close', () => {
 });
 $('eq-notice-close').addEventListener('click', () => eqDialog.close());
 
-function applyZoom(zoom: number): void {
+let currentZoom: number | 'fit' = 2;
+
+function applyZoom(zoom: number | 'fit'): void {
   const webampEl = document.getElementById('webamp');
   if (webampEl === null) return;
+  currentZoom = zoom;
   webampEl.style.imageRendering = 'pixelated';
   ($('zoom') as HTMLSelectElement).value = String(zoom);
   webampEl.style.transform = '';
-  if (zoom === 1) return;
   // Webamp lays its windows out in viewport pixels inside a zero-size
   // root div, so a percentage transform origin resolves to 0,0 and a
   // plain scale slides the whole cluster down and right (fully off
@@ -157,24 +159,49 @@ function applyZoom(zoom: number): void {
   const margin = 48;
   let originX = window.innerWidth / 2;
   let originY = window.innerHeight * 0.45;
+  let scale = zoom === 'fit' ? 1 : zoom;
   if (rects.length > 0) {
     const left = Math.min(...rects.map((r) => r.left));
     const top = Math.min(...rects.map((r) => r.top));
     const right = Math.max(...rects.map((r) => r.right));
     const bottom = Math.max(...rects.map((r) => r.bottom));
+    if (zoom === 'fit') {
+      // largest whole-number scale that keeps the cluster on screen;
+      // integers keep the pixel art crisp (couch and TV mode)
+      scale = Math.max(
+        1,
+        Math.min(
+          8,
+          Math.floor(
+            Math.min(
+              (window.innerWidth - margin * 2) / (right - left),
+              (window.innerHeight - margin * 2) / (bottom - top),
+            ),
+          ),
+        ),
+      );
+    }
     originX = (left + right) / 2;
     originY = (top + bottom) / 2;
-    if (originX - ((right - left) * zoom) / 2 < margin) {
-      originX = (left * zoom - margin) / (zoom - 1);
-    }
-    if (originY - ((bottom - top) * zoom) / 2 < margin) {
-      originY = (top * zoom - margin) / (zoom - 1);
+    if (scale > 1) {
+      if (originX - ((right - left) * scale) / 2 < margin) {
+        originX = (left * scale - margin) / (scale - 1);
+      }
+      if (originY - ((bottom - top) * scale) / 2 < margin) {
+        originY = (top * scale - margin) / (scale - 1);
+      }
     }
   }
+  if (scale === 1) return;
   const host = webampEl.getBoundingClientRect();
   webampEl.style.transformOrigin = `${originX - host.x}px ${originY - host.y}px`;
-  webampEl.style.transform = `scale(${zoom})`;
+  webampEl.style.transform = `scale(${scale})`;
 }
+
+// fit follows the window; live-resize with the cluster pinned on screen
+window.addEventListener('resize', () => {
+  if (currentZoom === 'fit') applyZoom('fit');
+});
 
 import('./webamp-host.js')
   .then(async ({ mountWebamp }) => {
@@ -419,7 +446,8 @@ $('update-open').addEventListener('click', () => {
   void window.reamp.openUpdatePage().catch(() => {});
 });
 $('zoom').addEventListener('change', (e) => {
-  const zoom = Number((e.target as HTMLSelectElement).value);
+  const raw = (e.target as HTMLSelectElement).value;
+  const zoom = raw === 'fit' ? 'fit' : Number(raw);
   applyZoom(zoom);
   void window.reamp.saveSettings({ webampZoom: zoom }).catch(() => {});
 });
@@ -510,6 +538,49 @@ $('playlists').addEventListener('click', () => {
   if (panel.classList.contains('open')) void showPlaylists();
 });
 backBtn.addEventListener('click', () => void showPlaylists());
+
+// ---- keyboard shortcuts ------------------------------------------------------
+
+// Couch reach: the essentials without hunting for small buttons. Form
+// fields, focused buttons, and the EQ dialog keep their native keys.
+document.addEventListener('keydown', (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const target = e.target as HTMLElement;
+  if (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLSelectElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLButtonElement ||
+    target.isContentEditable ||
+    eqDialog.open
+  ) {
+    return;
+  }
+  switch (e.key) {
+    case ' ':
+      e.preventDefault(); // no page scroll
+      send(playing ? { action: 'pause' } : { action: 'play' });
+      break;
+    case 'ArrowRight':
+      send({ action: 'next' });
+      break;
+    case 'ArrowLeft':
+      send({ action: 'previous' });
+      break;
+    case 'f':
+    case 'F':
+      $('fullscreen').click();
+      break;
+    case 'v':
+    case 'V':
+      setStageMode(stageIndex + 1);
+      break;
+    case 'd':
+    case 'D':
+      $('deck-toggle').click();
+      break;
+  }
+});
 
 // ---- frames ----------------------------------------------------------------
 

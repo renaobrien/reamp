@@ -54,6 +54,10 @@ gates audio capture. Nothing is recorded or written to disk.
   the square button goes fullscreen. Click the small vis to flip between
   spectrum and oscilloscope. Cmd+M opens Milkdrop in its own window
   (space for next preset, R for random, double-click for fullscreen).
+- Keyboard: Space plays or pauses, Left and Right arrows change track,
+  V cycles the stage visual, F goes fullscreen, D hides the deck.
+- The size dropdown scales the player; Fit picks the largest size the
+  window allows, which is the one you want on a TV.
 - Drag any `.wsz` skin file onto the window. Thousands live at the
   [Winamp Skin Museum](https://skins.webamp.org).
 - The EQ window is visual-only for streaming: Reamp listens to the mix,
