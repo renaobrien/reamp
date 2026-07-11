@@ -196,7 +196,10 @@ function applyZoom(zoom: number | 'fit'): void {
   }
   if (scale === 1) return;
   const host = webampEl.getBoundingClientRect();
-  webampEl.style.transformOrigin = `${originX - host.x}px ${originY - host.y}px`;
+  // Whole-pixel origin, or every window lands on a fractional offset
+  // (positions map to s*x - (s-1)*origin) and nearest-neighbor sampling
+  // smears the skin bitmaps into uneven columns: pixelated AND blurry.
+  webampEl.style.transformOrigin = `${Math.round(originX - host.x)}px ${Math.round(originY - host.y)}px`;
   webampEl.style.transform = `scale(${scale})`;
 }
 
