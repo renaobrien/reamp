@@ -20,8 +20,8 @@ export interface SettingsData {
   /** Stage visual by name ("Off", "Tunnel", ...), robust to reordering. */
   stageMode?: string;
   windowBounds?: WindowBounds;
-  /** Webamp scale factor (1..3). */
-  webampZoom?: number;
+  /** Webamp scale factor, or 'fit' for the largest size the window allows. */
+  webampZoom?: number | 'fit';
   deckHidden?: boolean;
   /** "Don't show again" on the EQ explainer dialog. */
   eqNoticeDismissed?: boolean;

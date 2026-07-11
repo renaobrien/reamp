@@ -81,8 +81,8 @@ export interface AppInfo {
 export interface PersistedSettings {
   source?: string;
   stageMode?: string;
-  /** Webamp scale factor (1..3). */
-  webampZoom?: number;
+  /** Webamp scale factor, or 'fit' for the largest size the window allows. */
+  webampZoom?: number | 'fit';
   deckHidden?: boolean;
   /** "Don't show again" on the EQ explainer dialog. */
   eqNoticeDismissed?: boolean;
