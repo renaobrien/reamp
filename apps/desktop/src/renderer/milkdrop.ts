@@ -7,6 +7,7 @@
 import type { ReampApi } from '../preload.js';
 import { installDemoBridge } from './demo-bridge.js';
 import { MilkdropEngine } from './milkdrop-engine.js';
+import { FeatureExtractor } from './scenes.js';
 
 declare global {
   interface Window {
@@ -39,8 +40,12 @@ try {
   canvas.width = window.innerWidth * devicePixelRatio;
   canvas.height = window.innerHeight * devicePixelRatio;
   const engine = new MilkdropEngine({ canvas, onPreset: showPresetName });
+  const features = new FeatureExtractor();
 
-  window.reamp.onVisFrame(({ pcm }) => engine.updatePcm(pcm));
+  window.reamp.onVisFrame((frame) => {
+    engine.updatePcm(frame.pcm);
+    engine.beat(features.extract(frame).beat);
+  });
   window.addEventListener('resize', () =>
     engine.setSize(window.innerWidth * devicePixelRatio, window.innerHeight * devicePixelRatio),
   );

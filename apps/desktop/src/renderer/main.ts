@@ -70,6 +70,13 @@ $('source').addEventListener('change', (e) => {
 
 let webampRef: import('webamp').default | null = null;
 
+let activeSkinUrl: string | null = null;
+function applySkinUrl(url: string): void {
+  if (activeSkinUrl !== null) URL.revokeObjectURL(activeSkinUrl);
+  activeSkinUrl = url;
+  webampRef?.setSkinFromUrl(url);
+}
+
 import('./webamp-host.js')
   .then(async ({ mountWebamp }) => {
     webampRef = await mountWebamp(window.reamp, $('webamp-container'), setStatus);
@@ -79,7 +86,7 @@ import('./webamp-host.js')
       const { extractViscolors } = await import('./skin-drop.js');
       const colors = await extractViscolors(saved).catch(() => null);
       if (colors !== null) deckVis.setColors(colors);
-      webampRef.setSkinFromUrl(URL.createObjectURL(new Blob([saved])));
+      applySkinUrl(URL.createObjectURL(new Blob([saved])));
     }
   })
   .catch((err: unknown) => {
@@ -92,7 +99,7 @@ import('./skin-drop.js')
   .then(({ installSkinDrop }) => {
     installSkinDrop(document.body, {
       onSkin: (url, name, data) => {
-        webampRef?.setSkinFromUrl(url);
+        applySkinUrl(url);
         setStatus(`skin: ${name}`);
         void window.reamp.saveSkin(data).catch(() => {});
       },
@@ -363,4 +370,5 @@ window.reamp.onVisFrame((frame) => {
   latestFeatures = features.extract(frame);
   deckVis.render(frame);
   milkdrop?.updatePcm(frame.pcm);
+  milkdrop?.beat(latestFeatures.beat);
 });
