@@ -9,6 +9,7 @@ import {
   type PersistedSettings,
   type PlayerStateEvent,
   type TransportCommand,
+  type UpdateInfo,
   type VisFrameEvent,
   type VisStateEvent,
 } from './shared/ipc.js';
@@ -39,6 +40,8 @@ const api = {
   getAppInfo: (): Promise<AppInfo> => ipcRenderer.invoke(IPC.getAppInfo),
   sendFeedback: (): Promise<void> => ipcRenderer.invoke(IPC.sendFeedback),
   openLogs: (): Promise<void> => ipcRenderer.invoke(IPC.openLogs),
+  checkUpdate: (): Promise<UpdateInfo> => ipcRenderer.invoke(IPC.checkUpdate),
+  openUpdatePage: (): Promise<void> => ipcRenderer.invoke(IPC.openUpdatePage),
 };
 
 export type ReampApi = typeof api;

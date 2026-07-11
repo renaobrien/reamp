@@ -15,6 +15,7 @@ export async function mountWebamp(
   bridge: ReampApi,
   container: HTMLElement,
   onNotice?: (message: string) => void,
+  onEqTouched?: () => void,
 ): Promise<Webamp> {
   const webamp = new Webamp({
     initialTracks: [
@@ -24,7 +25,7 @@ export async function mountWebamp(
         metaData: { artist: 'Reamp', title: 'Play something in Spotify or Music' },
       },
     ],
-    __customMediaClass: createReampMediaClass(bridge, onNotice),
+    __customMediaClass: createReampMediaClass(bridge, onNotice, onEqTouched),
   });
 
   let currentTrackKey = '';

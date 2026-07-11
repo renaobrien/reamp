@@ -116,4 +116,31 @@ describe('ReampMedia', () => {
     await media.loadFromUrl('reamp:current', false); // no autoplay, no command
     expect(commands).toEqual([]);
   });
+
+  it('reports every EQ touch but shows the status notice once', () => {
+    const bridge = {
+      transport: () => Promise.resolve(),
+      onPlayerState: () => {},
+      onVisFrame: () => {},
+    } as unknown as ReampApi;
+    const notices: string[] = [];
+    let touches = 0;
+    const MediaClass = createReampMediaClass(
+      bridge,
+      (msg) => notices.push(msg),
+      () => touches++,
+    ) as new () => MediaLike & {
+      setBalance(v: number): void;
+      setPreamp(v: number): void;
+      setEqBand(band: number, v: number): void;
+    };
+    const media = new MediaClass();
+
+    media.setEqBand(0, 50);
+    media.setBalance(10);
+    media.setPreamp(3);
+
+    expect(touches).toBe(3); // the dialog layer decides when to show
+    expect(notices).toHaveLength(1); // the status line stays quiet after once
+  });
 });

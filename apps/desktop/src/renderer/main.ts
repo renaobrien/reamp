@@ -5,7 +5,12 @@
  * original). The stage backdrop behind Webamp cycles Off / Tunnel /
  * Plasma / Swarm / Milkdrop, with a fullscreen option for all of them.
  */
-import type { PlayerStateEvent, TransportCommand, VisFrameEvent } from '../shared/ipc.js';
+import type {
+  PersistedSettings,
+  PlayerStateEvent,
+  TransportCommand,
+  VisFrameEvent,
+} from '../shared/ipc.js';
 import type { ReampApi } from '../preload.js';
 import { ClassicVis } from './classic-vis.js';
 import { installDemoBridge } from './demo-bridge.js';
@@ -96,7 +101,40 @@ function hookWebampTransport(): void {
     if (target.closest('#next') !== null) send({ action: 'next' });
     else if (target.closest('#previous') !== null) send({ action: 'previous' });
   });
+  // The EQ explainer must come from real pointer intent: Webamp also
+  // calls the media-class EQ setters while restoring its own state at
+  // boot, which is not the user asking why the sliders do nothing.
+  webampEl.addEventListener('pointerup', (e) => {
+    const target = e.target as HTMLElement;
+    const inEqWindow =
+      target.closest('#equalizer-window') !== null && target.closest('.title-bar') === null;
+    if (inEqWindow || target.closest('#balance') !== null) onEqTouched();
+  });
 }
+
+// ---- EQ explainer (desktop mode has no audio tap; honesty over silence) -----
+
+let eqNoticeDismissed = false;
+let eqNoticeShownThisSession = false;
+const eqDialog = $('eq-notice') as HTMLDialogElement;
+
+/** Fired by the media class whenever the skin's EQ, preamp, or balance
+ * sliders move. Once per session unless dismissed forever. */
+function onEqTouched(): void {
+  if (eqNoticeDismissed || eqNoticeShownThisSession || eqDialog.open) return;
+  eqNoticeShownThisSession = true;
+  eqDialog.showModal();
+}
+
+// persist on close however it closes (button, Esc), so the checkbox
+// always counts
+eqDialog.addEventListener('close', () => {
+  if (($('eq-notice-dismiss') as HTMLInputElement).checked) {
+    eqNoticeDismissed = true;
+    void window.reamp.saveSettings({ eqNoticeDismissed: true }).catch(() => {});
+  }
+});
+$('eq-notice-close').addEventListener('click', () => eqDialog.close());
 
 function applyZoom(zoom: number): void {
   const webampEl = document.getElementById('webamp');
@@ -142,7 +180,8 @@ import('./webamp-host.js')
   .then(async ({ mountWebamp }) => {
     webampRef = await mountWebamp(window.reamp, $('webamp-container'), setStatus);
     hookWebampTransport();
-    const settings = await window.reamp.getSettings().catch(() => ({}) as { webampZoom?: number });
+    const settings = await window.reamp.getSettings().catch(() => ({}) as PersistedSettings);
+    eqNoticeDismissed = settings.eqNoticeDismissed === true;
     applyZoom(settings.webampZoom ?? 2);
     // restore the persisted skin once Webamp is up
     const saved = await window.reamp.getSavedSkin();
@@ -340,7 +379,7 @@ void window.reamp
   .getAppInfo()
   .then((info) => {
     $('set-sidecar').textContent = info.sidecar;
-    $('set-version').textContent = `${info.version} (${info.mode})`;
+    $('set-version').textContent = `${info.version} ${info.commit} (${info.mode})`;
     $('set-logfile').textContent = info.logFile;
     $('set-logfile').title = info.logFile;
   })
@@ -354,6 +393,30 @@ $('send-feedback').addEventListener('click', () => {
 });
 $('open-logs').addEventListener('click', () => {
   void window.reamp.openLogs().catch(() => {});
+});
+$('check-update').addEventListener('click', () => {
+  const result = $('update-result');
+  const openBtn = $('update-open') as HTMLButtonElement;
+  openBtn.hidden = true;
+  result.textContent = 'checking…';
+  window.reamp
+    .checkUpdate()
+    .then((info) => {
+      if (info.status === 'update-available') {
+        result.textContent = `Update available: ${info.latest ?? ''}. ${info.detail ?? ''}`;
+        openBtn.hidden = false;
+      } else if (info.status === 'up-to-date') {
+        result.textContent = `Up to date. Installed: ${info.current}.`;
+      } else {
+        result.textContent = info.detail ?? 'Could not check for updates.';
+      }
+    })
+    .catch((err: unknown) => {
+      result.textContent = String(err instanceof Error ? err.message : err);
+    });
+});
+$('update-open').addEventListener('click', () => {
+  void window.reamp.openUpdatePage().catch(() => {});
 });
 $('zoom').addEventListener('change', (e) => {
   const zoom = Number((e.target as HTMLSelectElement).value);

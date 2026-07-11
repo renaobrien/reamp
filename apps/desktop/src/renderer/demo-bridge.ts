@@ -148,6 +148,7 @@ export function installDemoBridge(): void {
     getAppInfo: () =>
       Promise.resolve({
         version: 'browser demo',
+        commit: 'dev',
         mode: 'desktop-control' as const,
         sidecar: 'procedural music',
         logFile: '(browser console)',
@@ -157,6 +158,17 @@ export function installDemoBridge(): void {
       return Promise.resolve();
     },
     openLogs: () => Promise.resolve(),
+    checkUpdate: () =>
+      Promise.resolve({
+        status: 'up-to-date' as const,
+        current: 'browser demo',
+        detail: 'Updates apply to the desktop app; the demo always tracks the latest code.',
+        url: 'https://github.com/renaobrien/reamp',
+      }),
+    openUpdatePage: () => {
+      window.open('https://github.com/renaobrien/reamp', '_blank');
+      return Promise.resolve();
+    },
   };
   (window as unknown as { reamp: ReampApi }).reamp = api;
 

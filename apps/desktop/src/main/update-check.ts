@@ -1,0 +1,113 @@
+/**
+ * Update check against GitHub, no server of our own (CLAUDE.md rule 5).
+ * Two signals, in order: a packaged release newer than this version
+ * (once notarized releases exist), else a commit on main newer than the
+ * one this build was made from. True background auto-update needs signed
+ * builds, so until notarization lands this reports and points, and the
+ * renderer walks the user through the rest.
+ */
+import type { UpdateInfo } from '../shared/ipc.js';
+
+export interface FetchLike {
+  (url: string, init?: { headers?: Record<string, string> }): Promise<{
+    ok: boolean;
+    status: number;
+    json(): Promise<unknown>;
+  }>;
+}
+
+export interface UpdateCheckOptions {
+  /** owner/name */
+  repo: string;
+  currentVersion: string;
+  /** Short commit sha from build-info.json; 'dev' when built ad hoc. */
+  currentCommit: string;
+  fetcher?: FetchLike;
+}
+
+const HEADERS = {
+  accept: 'application/vnd.github+json',
+  'user-agent': 'reamp-update-check',
+};
+
+/** Compare dotted versions numerically; tolerates a leading v. Returns
+ * >0 when a is newer, 0 when equal, <0 when older. */
+export function compareVersions(a: string, b: string): number {
+  const parse = (v: string): number[] =>
+    v
+      .replace(/^v/i, '')
+      .split('.')
+      .map((part) => Number.parseInt(part, 10) || 0);
+  const pa = parse(a);
+  const pb = parse(b);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+export async function checkForUpdates(options: UpdateCheckOptions): Promise<UpdateInfo> {
+  const { repo, currentVersion, currentCommit } = options;
+  const fetcher = options.fetcher ?? (fetch as unknown as FetchLike);
+  const api = `https://api.github.com/repos/${repo}`;
+  const current = `${currentVersion} (${currentCommit})`;
+
+  try {
+    // Packaged releases win when they exist: that path needs no toolchain.
+    const releaseRes = await fetcher(`${api}/releases/latest`, { headers: HEADERS });
+    if (releaseRes.ok) {
+      const release = (await releaseRes.json()) as { tag_name?: string; html_url?: string };
+      const tag = release.tag_name ?? '';
+      if (tag.length > 0 && compareVersions(tag, currentVersion) > 0) {
+        return {
+          status: 'update-available',
+          current,
+          latest: tag,
+          kind: 'release',
+          detail: 'A packaged release is ready to download.',
+          url: release.html_url ?? `https://github.com/${repo}/releases/latest`,
+        };
+      }
+    }
+
+    // From-source installs: compare the build commit against main.
+    if (currentCommit === 'dev' || currentCommit.length === 0) {
+      return {
+        status: 'unknown',
+        current,
+        detail: 'This build has no commit stamp; rebuild with pnpm build to enable checks.',
+        url: `https://github.com/${repo}`,
+      };
+    }
+    const commitRes = await fetcher(`${api}/commits/main`, { headers: HEADERS });
+    if (!commitRes.ok) {
+      return {
+        status: 'unknown',
+        current,
+        detail: `GitHub answered ${commitRes.status}; try again later.`,
+        url: `https://github.com/${repo}`,
+      };
+    }
+    const head = (await commitRes.json()) as { sha?: string };
+    const sha = head.sha ?? '';
+    if (sha.length > 0 && !sha.startsWith(currentCommit)) {
+      return {
+        status: 'update-available',
+        current,
+        latest: sha.slice(0, 7),
+        kind: 'source',
+        detail: 'Newer code is on main. In the repo: git pull, pnpm install, pnpm --filter @reamp/desktop dist.',
+        url: `https://github.com/${repo}`,
+      };
+    }
+    return { status: 'up-to-date', current, url: `https://github.com/${repo}` };
+  } catch (err) {
+    return {
+      status: 'unknown',
+      current,
+      detail: `Could not reach GitHub: ${err instanceof Error ? err.message : String(err)}`,
+      url: `https://github.com/${repo}`,
+    };
+  }
+}

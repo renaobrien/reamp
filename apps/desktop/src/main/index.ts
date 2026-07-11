@@ -11,18 +11,33 @@
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { BrowserWindow, Menu, app, globalShortcut, ipcMain, screen, shell } from 'electron';
+import { BrowserWindow, Menu, app, dialog, globalShortcut, ipcMain, screen, shell } from 'electron';
 import { MusicDesktopAdapter, SpotifyDesktopAdapter } from '@reamp/adapters';
 import { AdapterHost } from './adapter-host.js';
 import { collectSystemInfo, formatDiagnostics } from './diagnostics.js';
 import { buildFeedbackUrl } from './feedback.js';
 import { runOsaScript } from './osascript.js';
 import { broadcastToWindows, registerIpc } from './register-ipc.js';
-import { IPC } from '../shared/ipc.js';
+import { IPC, type UpdateInfo } from '../shared/ipc.js';
 import { Logger } from './logger.js';
 import { serveRenderer, type RendererServer } from './renderer-server.js';
 import { SettingsStore } from './settings.js';
+import { checkForUpdates } from './update-check.js';
 import { VisService } from './vis-service.js';
+
+const REPO = 'renaobrien/reamp';
+
+/** Commit stamped by scripts/write-build-info.mjs at build time. */
+function buildCommit(): string {
+  try {
+    const info = JSON.parse(readFileSync(join(__dirname, '../build-info.json'), 'utf8')) as {
+      commit?: string;
+    };
+    return info.commit ?? 'dev';
+  } catch {
+    return 'dev';
+  }
+}
 
 /**
  * The renderer is served over 127.0.0.1, not file://: Chromium blocks
@@ -48,6 +63,21 @@ function resolveSidecar(): { binaryPath: string; args: string[]; env?: NodeJS.Pr
     args: [join(__dirname, '../../sidecar-mock/mock-sidecar.mjs')],
     env: { ELECTRON_RUN_AS_NODE: '1' },
   };
+}
+
+/** Latest check result, so openUpdatePage never takes a URL from the
+ * renderer; it can only open what the check itself produced. */
+let lastUpdate: UpdateInfo | null = null;
+
+async function runUpdateCheck(): Promise<UpdateInfo> {
+  const info = await checkForUpdates({
+    repo: REPO,
+    currentVersion: app.getVersion(),
+    currentCommit: buildCommit(),
+  });
+  lastUpdate = info;
+  logger?.log('update', `${info.status}${info.latest === undefined ? '' : ` -> ${info.latest}`}`);
+  return info;
 }
 
 function feedbackUrl(host: AdapterHost): string {
@@ -120,6 +150,27 @@ function buildMenu(host: AdapterHost): Menu {
           click: () => {
             void captureFeedbackScreenshot();
             void shell.openExternal(feedbackUrl(host));
+          },
+        },
+        {
+          label: 'Check for Updates…',
+          click: () => {
+            void runUpdateCheck().then(async (info) => {
+              const { response } = await dialog.showMessageBox({
+                type: 'info',
+                message:
+                  info.status === 'update-available'
+                    ? `Update available: ${info.latest ?? ''}`
+                    : info.status === 'up-to-date'
+                      ? 'Reamp is up to date'
+                      : 'Could not check for updates',
+                detail: [`Installed: ${info.current}`, info.detail ?? ''].join('\n').trim(),
+                buttons: info.status === 'update-available' ? ['Open GitHub', 'Later'] : ['OK'],
+              });
+              if (info.status === 'update-available' && response === 0 && info.url !== undefined) {
+                void shell.openExternal(info.url);
+              }
+            });
           },
         },
         {
@@ -233,6 +284,7 @@ void app.whenReady().then(async () => {
   ipcMain.handle(IPC.getVisState, () => lastVisState);
   ipcMain.handle(IPC.getAppInfo, () => ({
     version: app.getVersion(),
+    commit: buildCommit(),
     mode: 'desktop-control',
     sidecar:
       sidecar.binaryPath === process.execPath
@@ -246,6 +298,11 @@ void app.whenReady().then(async () => {
   });
   ipcMain.handle(IPC.openLogs, () => {
     if (logger !== null) shell.showItemInFolder(logger.logFile);
+  });
+  ipcMain.handle(IPC.checkUpdate, () => runUpdateCheck());
+  ipcMain.handle(IPC.openUpdatePage, () => {
+    const url = lastUpdate?.url ?? `https://github.com/${REPO}`;
+    return shell.openExternal(url);
   });
   app.on('will-quit', () => {
     vis.stop();

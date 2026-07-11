@@ -78,6 +78,19 @@ Builds `Reamp.app` and a dmg into `apps/desktop/release/`. Unsigned for
 now; right-click and choose Open on first launch. If the capture helper
 has been built it is bundled automatically.
 
+### Updating
+
+Click Check for Updates in the settings panel (the gear button), or
+Help > Check for Updates. It compares your build against the newest
+Reamp on GitHub and points you at the download when a packaged release
+exists. For a from-source install, update with:
+
+```sh
+git pull
+pnpm install
+pnpm --filter @reamp/desktop dist
+```
+
 ## Spotify or Apple Music inside the app (optional, advanced)
 
 The default mode needs nothing. If you want Reamp to play audio itself
