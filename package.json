@@ -12,7 +12,10 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p scripts && pnpm -r --if-present typecheck",
     "test": "vitest run scripts && pnpm -r --if-present test",
-    "build": "pnpm -r --if-present build"
+    "build": "pnpm -r --if-present build",
+    "app": "pnpm --filter @reamp/desktop start",
+    "dist": "pnpm --filter @reamp/desktop dist",
+    "demo": "pnpm --filter @reamp/desktop demo"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

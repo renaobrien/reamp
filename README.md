@@ -23,7 +23,7 @@ cd reamp
 pnpm install
 pnpm approve-builds     # allow Electron's binary download, then:
 pnpm install
-pnpm --filter @reamp/desktop start
+pnpm app
 ```
 
 Have Spotify or Music open and playing. Reamp asks once for permission to
@@ -38,7 +38,7 @@ Command Line Tools) and launch with it:
 ```sh
 cd apps/desktop/sidecar && swift build -c release && cd ../../..
 REAMP_SIDECAR_BIN=apps/desktop/sidecar/.build/release/capture-sidecar \
-  pnpm --filter @reamp/desktop start
+  pnpm app
 ```
 
 macOS asks once for Screen Recording permission; that is how the system
@@ -66,7 +66,7 @@ gates audio capture. Nothing is recorded or written to disk.
 ### Browser demo (no install)
 
 ```sh
-pnpm --filter @reamp/desktop demo
+pnpm demo
 ```
 
 Opens the same interface in your browser with procedural music and a
@@ -75,7 +75,7 @@ pretend playlist. Milkdrop is at `/milkdrop.html` on the same host.
 ### Packaging a .app
 
 ```sh
-pnpm --filter @reamp/desktop dist
+pnpm dist
 ```
 
 Builds `Reamp.app` and a dmg into `apps/desktop/release/`. Unsigned for
@@ -92,7 +92,7 @@ exists. For a from-source install, update with:
 ```sh
 git pull
 pnpm install
-pnpm --filter @reamp/desktop dist
+pnpm dist
 ```
 
 ## Spotify or Apple Music inside the app (optional, advanced)

@@ -97,7 +97,7 @@ export async function checkForUpdates(options: UpdateCheckOptions): Promise<Upda
         current,
         latest: sha.slice(0, 7),
         kind: 'source',
-        detail: 'Newer code is on main. In the repo: git pull, pnpm install, pnpm --filter @reamp/desktop dist.',
+        detail: 'Newer code is on main. In the repo folder: git pull, pnpm install, pnpm dist.',
         url: `https://github.com/${repo}`,
       };
     }
