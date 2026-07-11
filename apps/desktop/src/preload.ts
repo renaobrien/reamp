@@ -5,10 +5,12 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import {
   IPC,
+  type AppInfo,
   type PersistedSettings,
   type PlayerStateEvent,
   type TransportCommand,
   type VisFrameEvent,
+  type VisStateEvent,
 } from './shared/ipc.js';
 
 const api = {
@@ -30,6 +32,12 @@ const api = {
     ipcRenderer.invoke(IPC.saveSettings, patch),
   getSavedSkin: (): Promise<ArrayBuffer | null> => ipcRenderer.invoke(IPC.getSavedSkin),
   saveSkin: (data: ArrayBuffer): Promise<void> => ipcRenderer.invoke(IPC.saveSkin, data),
+  onVisState: (cb: (event: VisStateEvent) => void): void => {
+    ipcRenderer.on(IPC.visState, (_e, event: VisStateEvent) => cb(event));
+  },
+  getVisState: (): Promise<VisStateEvent> => ipcRenderer.invoke(IPC.getVisState),
+  getAppInfo: (): Promise<AppInfo> => ipcRenderer.invoke(IPC.getAppInfo),
+  sendFeedback: (): Promise<void> => ipcRenderer.invoke(IPC.sendFeedback),
 };
 
 export type ReampApi = typeof api;

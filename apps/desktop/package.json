@@ -1,6 +1,6 @@
 {
   "name": "@reamp/desktop",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "dist/main/index.cjs",
@@ -11,7 +11,8 @@
     "build:renderer": "vite build",
     "build": "pnpm build:main && pnpm build:renderer",
     "start": "pnpm build && electron .",
-    "demo": "vite dev"
+    "demo": "vite dev",
+    "dist": "pnpm build && electron-builder --config electron-builder.config.cjs"
   },
   "dependencies": {
     "@reamp/adapters": "workspace:*",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "electron": "^43.1.0",
+    "electron-builder": "^26.15.3",
     "esbuild": "^0.28.1",
     "vite": "^8.1.4"
   }

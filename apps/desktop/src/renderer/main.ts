@@ -245,6 +245,35 @@ void window.reamp
   })
   .catch(() => {});
 
+// ---- capture status + settings (R9: honest degradation) ----------------------
+
+function renderCaptureState(event: { state: string; detail?: string }): void {
+  const chip = $('capture');
+  const bad = event.state === 'failed' || event.state === 'stopped';
+  chip.classList.toggle('visible', bad);
+  if (bad) chip.textContent = `capture ${event.state}`;
+  $('set-capture').textContent = event.detail
+    ? `${event.state}: ${event.detail.split('\n')[0]}`
+    : event.state;
+}
+
+window.reamp.onVisState(renderCaptureState);
+void window.reamp.getVisState().then(renderCaptureState).catch(() => {});
+void window.reamp
+  .getAppInfo()
+  .then((info) => {
+    $('set-sidecar').textContent = info.sidecar;
+    $('set-version').textContent = `${info.version} (${info.mode})`;
+  })
+  .catch(() => {});
+
+$('settings-btn').addEventListener('click', () => {
+  $('settings-panel').classList.toggle('open');
+});
+$('send-feedback').addEventListener('click', () => {
+  void window.reamp.sendFeedback().catch(() => {});
+});
+
 // ---- playlist browser --------------------------------------------------------
 
 const panel = $('playlist-panel');

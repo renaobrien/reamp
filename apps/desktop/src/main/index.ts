@@ -9,8 +9,9 @@
  * Runs from the esbuild bundle: dist/main/index.cjs, preload at
  * dist/preload.cjs, renderer at dist/renderer/.
  */
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { BrowserWindow, Menu, app, screen, shell } from 'electron';
+import { BrowserWindow, Menu, app, ipcMain, screen, shell } from 'electron';
 import { MusicDesktopAdapter, SpotifyDesktopAdapter } from '@reamp/adapters';
 import { AdapterHost } from './adapter-host.js';
 import { collectSystemInfo, formatDiagnostics } from './diagnostics.js';
@@ -31,13 +32,15 @@ import { VisService } from './vis-service.js';
 let renderer: RendererServer | null = null;
 
 /**
- * The real SCK binary when REAMP_SIDECAR_BIN points at one; otherwise the
- * mock sidecar (same wire protocol, synthetic audio) run through our own
- * executable in Node mode, so the vis pipeline works on any machine.
+ * Sidecar resolution order: REAMP_SIDECAR_BIN, then the binary packaged
+ * as an app resource, then the mock sidecar (same wire protocol,
+ * synthetic audio) run through our own executable in Node mode.
  */
 function resolveSidecar(): { binaryPath: string; args: string[]; env?: NodeJS.ProcessEnv } {
   const real = process.env['REAMP_SIDECAR_BIN'];
   if (real !== undefined && real.length > 0) return { binaryPath: real, args: [] };
+  const packaged = join(process.resourcesPath ?? '', 'capture-sidecar');
+  if (app.isPackaged && existsSync(packaged)) return { binaryPath: packaged, args: [] };
   return {
     binaryPath: process.execPath,
     args: [join(__dirname, '../../sidecar-mock/mock-sidecar.mjs')],
@@ -159,11 +162,25 @@ void app.whenReady().then(async () => {
   });
   registerIpc(host, settings);
 
+  const sidecar = resolveSidecar();
+  let lastVisState: { state: string; detail?: string } = { state: 'idle' };
+  const visStateBroadcast = broadcastToWindows(IPC.visState, windows);
   const vis = new VisService({
-    ...resolveSidecar(),
+    ...sidecar,
     broadcast: broadcastToWindows(IPC.visFrame, windows),
+    onStateChange: (state, detail) => {
+      lastVisState = { state, detail };
+      visStateBroadcast(lastVisState);
+    },
   });
   vis.start();
+  ipcMain.handle(IPC.getVisState, () => lastVisState);
+  ipcMain.handle(IPC.getAppInfo, () => ({
+    version: app.getVersion(),
+    mode: 'desktop-control',
+    sidecar: sidecar.binaryPath === process.execPath ? 'mock (synthetic audio)' : sidecar.binaryPath,
+  }));
+  ipcMain.handle(IPC.sendFeedback, () => shell.openExternal(feedbackUrl(host)));
   app.on('will-quit', () => {
     vis.stop();
     renderer?.close();

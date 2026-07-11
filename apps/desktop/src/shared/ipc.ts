@@ -33,7 +33,27 @@ export const IPC = {
   getSavedSkin: 'reamp:get-saved-skin',
   /** invoke(ArrayBuffer) -> void */
   saveSkin: 'reamp:save-skin',
+  /** main -> renderer: VisStateEvent on capture pipeline changes */
+  visState: 'reamp:vis-state',
+  /** invoke() -> VisStateEvent (current) */
+  getVisState: 'reamp:get-vis-state',
+  /** invoke() -> AppInfo */
+  getAppInfo: 'reamp:get-app-info',
+  /** invoke() -> void; opens the prefilled feedback issue in the browser */
+  sendFeedback: 'reamp:send-feedback',
 } as const;
+
+export interface VisStateEvent {
+  state: 'idle' | 'starting' | 'running' | 'stopped' | 'failed';
+  detail?: string;
+}
+
+export interface AppInfo {
+  version: string;
+  mode: 'desktop-control' | 'api';
+  /** What the vis pipeline is running on. */
+  sidecar: string;
+}
 
 export interface PersistedSettings {
   source?: string;
