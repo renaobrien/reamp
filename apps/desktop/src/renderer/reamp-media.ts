@@ -27,10 +27,18 @@ export interface ReampMediaInstance {
   readonly playing: boolean;
 }
 
+/** Shared flag between the host and the media class: Webamp dispatches
+ * STOP as part of closing its windows, and hiding the player must not
+ * pause the user's actual music. */
+export interface StopGuard {
+  suppressStop: boolean;
+}
+
 export function createReampMediaClass(
   bridge: ReampApi,
   onNotice?: (message: string) => void,
   onEqTouched?: () => void,
+  stopGuard?: StopGuard,
 ): WebampMediaClass {
   let eqNoticeShown = false;
   const eqNotice = (): void => {
@@ -72,6 +80,9 @@ export function createReampMediaClass(
     }
 
     stop(): void {
+      // Webamp fires STOP while closing its windows; that close must not
+      // touch the actual music (the visuals play on without the skin).
+      if (stopGuard?.suppressStop === true) return;
       // Streaming sources have no stop; pause is the honest equivalent.
       void this.send({ action: 'pause' });
     }

@@ -74,6 +74,8 @@ export interface AppInfo {
   mode: 'desktop-control' | 'api';
   /** What the vis pipeline is running on. */
   sidecar: string;
+  /** True when the visuals hear built-in demo audio, not the user's music. */
+  demoAudio: boolean;
   /** Where field debugging lives. */
   logFile: string;
 }
