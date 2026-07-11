@@ -465,6 +465,7 @@ $('send-feedback').addEventListener('click', () => {
 $('open-logs').addEventListener('click', () => {
   void window.reamp.openLogs().catch(() => {});
 });
+let updateHasDownload = false;
 $('check-update').addEventListener('click', () => {
   const result = $('update-result');
   const openBtn = $('update-open') as HTMLButtonElement;
@@ -474,7 +475,9 @@ $('check-update').addEventListener('click', () => {
     .checkUpdate()
     .then((info) => {
       if (info.status === 'update-available') {
+        updateHasDownload = info.downloadUrl !== undefined;
         result.textContent = `Update available: ${info.latest ?? ''}. ${info.detail ?? ''}`;
+        openBtn.textContent = updateHasDownload ? 'Install Update' : 'Get Update';
         openBtn.hidden = false;
       } else if (info.status === 'up-to-date') {
         result.textContent = `Up to date. Installed: ${info.current}.`;
@@ -486,8 +489,41 @@ $('check-update').addEventListener('click', () => {
       result.textContent = String(err instanceof Error ? err.message : err);
     });
 });
+// Install in place when the release has a download for this machine;
+// anything that prevents that degrades to opening the release page.
 $('update-open').addEventListener('click', () => {
-  void window.reamp.openUpdatePage().catch(() => {});
+  const result = $('update-result');
+  if (!updateHasDownload) {
+    void window.reamp.openUpdatePage().catch(() => {});
+    return;
+  }
+  void window.reamp
+    .installUpdate()
+    .then((r) => {
+      if (r.started) {
+        ($('update-open') as HTMLButtonElement).hidden = true;
+        result.textContent = 'starting download…';
+      } else {
+        result.textContent = `${r.reason ?? 'cannot install in place'}; opening the release page.`;
+        void window.reamp.openUpdatePage().catch(() => {});
+      }
+    })
+    .catch(() => {
+      void window.reamp.openUpdatePage().catch(() => {});
+    });
+});
+window.reamp.onUpdateProgress((event) => {
+  const result = $('update-result');
+  if (event.phase === 'failed') {
+    result.textContent = `update failed: ${event.error ?? 'unknown'}. Use the release page instead.`;
+    ($('update-open') as HTMLButtonElement).hidden = false;
+    updateHasDownload = false; // the button now opens the page
+    return;
+  }
+  result.textContent =
+    event.phase === 'downloading' && event.pct !== undefined
+      ? `downloading… ${event.pct}%`
+      : `${event.phase}…`;
 });
 $('zoom').addEventListener('change', (e) => {
   const raw = (e.target as HTMLSelectElement).value;

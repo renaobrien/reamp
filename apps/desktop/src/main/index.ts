@@ -18,11 +18,12 @@ import { collectSystemInfo, formatDiagnostics } from './diagnostics.js';
 import { buildFeedbackUrl } from './feedback.js';
 import { runOsaScript } from './osascript.js';
 import { broadcastToWindows, registerIpc } from './register-ipc.js';
-import { IPC, type UpdateInfo } from '../shared/ipc.js';
+import { IPC, type UpdateInfo, type UpdateProgressEvent } from '../shared/ipc.js';
 import { Logger } from './logger.js';
 import { serveRenderer, type RendererServer } from './renderer-server.js';
 import { SettingsStore } from './settings.js';
 import { checkForUpdates } from './update-check.js';
+import { bundlePathFromExec, downloadAndInstall, installBlocker } from './update-install.js';
 import { VisService } from './vis-service.js';
 
 const REPO = 'renaobrien/reamp';
@@ -68,6 +69,47 @@ function resolveSidecar(): { binaryPath: string; args: string[]; env?: NodeJS.Pr
 /** Latest check result, so openUpdatePage never takes a URL from the
  * renderer; it can only open what the check itself produced. */
 let lastUpdate: UpdateInfo | null = null;
+let installing = false;
+let updateProgress: (event: UpdateProgressEvent) => void = () => {};
+
+/** Kick off the in-place self-update from the last check. Shared by the
+ * settings button (over IPC) and the Help menu. */
+function startInstall(): { started: boolean; reason?: string } {
+  const downloadUrl = lastUpdate?.downloadUrl;
+  if (downloadUrl === undefined) {
+    return { started: false, reason: 'no packaged download for this machine' };
+  }
+  const bundlePath = bundlePathFromExec(app.getPath('exe'));
+  const blocked = installBlocker({
+    platform: process.platform,
+    isPackaged: app.isPackaged,
+    bundlePath,
+  });
+  if (blocked !== null) return { started: false, reason: blocked };
+  if (installing) return { started: false, reason: 'an update is already installing' };
+  installing = true;
+  void downloadAndInstall({
+    downloadUrl,
+    bundlePath: bundlePath!,
+    stagingDir: join(app.getPath('userData'), 'update-staging'),
+    onProgress: (phase, pct) => {
+      logger?.log('update', pct === undefined ? phase : `${phase} ${pct}%`);
+      updateProgress({ phase, pct } as UpdateProgressEvent);
+    },
+  })
+    .then(() => {
+      logger?.log('update', `installed ${lastUpdate?.latest ?? ''}; relaunching`);
+      app.relaunch();
+      app.exit(0);
+    })
+    .catch((err: unknown) => {
+      installing = false;
+      const error = err instanceof Error ? err.message : String(err);
+      logger?.log('update', `install failed: ${error}`);
+      updateProgress({ phase: 'failed', error });
+    });
+  return { started: true };
+}
 
 async function runUpdateCheck(): Promise<UpdateInfo> {
   const info = await checkForUpdates({
@@ -156,6 +198,19 @@ function buildMenu(host: AdapterHost): Menu {
           label: 'Check for Updates…',
           click: () => {
             void runUpdateCheck().then(async (info) => {
+              const canInstall =
+                info.downloadUrl !== undefined &&
+                installBlocker({
+                  platform: process.platform,
+                  isPackaged: app.isPackaged,
+                  bundlePath: bundlePathFromExec(app.getPath('exe')),
+                }) === null;
+              const buttons =
+                info.status !== 'update-available'
+                  ? ['OK']
+                  : canInstall
+                    ? ['Install and Relaunch', 'Later']
+                    : ['Open GitHub', 'Later'];
               const { response } = await dialog.showMessageBox({
                 type: 'info',
                 message:
@@ -165,9 +220,12 @@ function buildMenu(host: AdapterHost): Menu {
                       ? 'Reamp is up to date'
                       : 'Could not check for updates',
                 detail: [`Installed: ${info.current}`, info.detail ?? ''].join('\n').trim(),
-                buttons: info.status === 'update-available' ? ['Open GitHub', 'Later'] : ['OK'],
+                buttons,
               });
-              if (info.status === 'update-available' && response === 0 && info.url !== undefined) {
+              if (info.status !== 'update-available' || response !== 0) return;
+              if (canInstall) {
+                startInstall();
+              } else if (info.url !== undefined) {
                 void shell.openExternal(info.url);
               }
             });
@@ -305,6 +363,8 @@ void app.whenReady().then(async () => {
     const url = lastUpdate?.url ?? `https://github.com/${REPO}`;
     return shell.openExternal(url);
   });
+  updateProgress = broadcastToWindows(IPC.updateProgress, windows);
+  ipcMain.handle(IPC.installUpdate, () => startInstall());
   app.on('will-quit', () => {
     vis.stop();
     renderer?.close();

@@ -15,13 +15,18 @@ instantly, vis colors included.
 
 ## Install and run
 
-Requires macOS 13+, Node 22+, and pnpm (`npm install -g pnpm`).
+Easiest: grab the newest `Reamp.dmg` from the
+[releases page](https://github.com/renaobrien/reamp/releases), open it,
+and drag Reamp into Applications. The build is unsigned for now, so the
+first launch is right-click, then Open. Apple Silicon Macs want the
+arm64 file; Intel Macs the plain one.
+
+To run from source instead (macOS 13+, Node 22+, and pnpm via
+`npm install -g pnpm`):
 
 ```sh
 git clone https://github.com/renaobrien/reamp.git
 cd reamp
-pnpm install
-pnpm approve-builds     # allow Electron's binary download, then:
 pnpm install
 pnpm app
 ```
@@ -89,9 +94,11 @@ has been built it is bundled automatically.
 ### Updating
 
 Click Check for Updates in the settings panel (the gear button), or
-Help > Check for Updates. It compares your build against the newest
-Reamp on GitHub and points you at the download when a packaged release
-exists. For a from-source install, update with:
+Help > Check for Updates. When a newer release exists, Install Update
+downloads it, swaps it in place, and relaunches Reamp; nothing to drag,
+no Terminal. If the in-place install cannot run (an unusual location,
+or no packaged build for your machine), the button opens the release
+page instead. A from-source install updates with:
 
 ```sh
 git pull

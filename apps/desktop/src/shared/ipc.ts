@@ -47,7 +47,24 @@ export const IPC = {
   checkUpdate: 'reamp:check-update',
   /** invoke() -> void; opens the page from the most recent update check */
   openUpdatePage: 'reamp:open-update-page',
+  /** invoke() -> InstallStart; downloads and installs the checked update */
+  installUpdate: 'reamp:install-update',
+  /** main -> renderer: UpdateProgressEvent while an install runs */
+  updateProgress: 'reamp:update-progress',
 } as const;
+
+export interface InstallStart {
+  started: boolean;
+  /** Why the in-place install cannot run, when started is false. */
+  reason?: string;
+}
+
+export interface UpdateProgressEvent {
+  phase: 'downloading' | 'unpacking' | 'installing' | 'relaunching' | 'failed';
+  /** 0..100 while downloading. */
+  pct?: number;
+  error?: string;
+}
 
 export interface UpdateInfo {
   status: 'update-available' | 'up-to-date' | 'unknown';
@@ -60,6 +77,8 @@ export interface UpdateInfo {
   /** Where to get it or what went wrong. */
   detail?: string;
   url?: string;
+  /** Direct asset download for this machine, when the release has one. */
+  downloadUrl?: string;
 }
 
 export interface VisStateEvent {

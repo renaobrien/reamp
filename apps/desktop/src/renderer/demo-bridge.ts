@@ -170,6 +170,9 @@ export function installDemoBridge(): void {
       window.open('https://github.com/renaobrien/reamp', '_blank');
       return Promise.resolve();
     },
+    installUpdate: () =>
+      Promise.resolve({ started: false, reason: 'the browser demo updates itself' }),
+    onUpdateProgress: () => {},
   };
   (window as unknown as { reamp: ReampApi }).reamp = api;
 
