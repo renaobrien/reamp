@@ -11,7 +11,7 @@
  */
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { BrowserWindow, Menu, app, ipcMain, screen, shell } from 'electron';
+import { BrowserWindow, Menu, app, globalShortcut, ipcMain, screen, shell } from 'electron';
 import { MusicDesktopAdapter, SpotifyDesktopAdapter } from '@reamp/adapters';
 import { AdapterHost } from './adapter-host.js';
 import { collectSystemInfo, formatDiagnostics } from './diagnostics.js';
@@ -185,6 +185,20 @@ void app.whenReady().then(async () => {
     vis.stop();
     renderer?.close();
   });
+
+  // Media keys (P1): forwarded to whatever source is active. Play/pause
+  // toggles off the last known state.
+  globalShortcut.register('MediaPlayPause', () => {
+    const playing = host.getLastState()?.state.playing ?? false;
+    void host.transport({ action: playing ? 'pause' : 'play' }).catch(() => {});
+  });
+  globalShortcut.register('MediaNextTrack', () => {
+    void host.transport({ action: 'next' }).catch(() => {});
+  });
+  globalShortcut.register('MediaPreviousTrack', () => {
+    void host.transport({ action: 'previous' }).catch(() => {});
+  });
+  app.on('will-quit', () => globalShortcut.unregisterAll());
 
   Menu.setApplicationMenu(buildMenu(host));
   createWindow(settings);
