@@ -91,6 +91,30 @@ pnpm test
 Node 22 or newer, pnpm 10 or newer. Conventions and platform rules live in
 [CLAUDE.md](CLAUDE.md).
 
+### Browser demo (no Electron, no macOS)
+
+The renderer runs in a plain browser with a demo bridge: synthesized
+audio drives the vis, and the transport controls a pretend playlist.
+Webamp, the classic vis deck, and Milkdrop are all real.
+
+```sh
+pnpm --filter @reamp/desktop demo   # then open the printed localhost URL
+```
+
+The Milkdrop window is at `/milkdrop.html` on the same host.
+
+### Running the real app (macOS)
+
+```sh
+pnpm approve-builds                  # once: allow Electron's binary download
+pnpm --filter @reamp/desktop start   # build and launch
+```
+
+Spotify or Music should be running; the app never launches them itself.
+Until the ScreenCaptureKit sidecar lands, visuals run on the mock
+sidecar's synthesized audio (set `REAMP_SIDECAR_BIN` to a real capture
+binary to switch).
+
 ## API mode setup (only if you want in-app playback)
 
 Spotify: create an app at developer.spotify.com (free, Development Mode),

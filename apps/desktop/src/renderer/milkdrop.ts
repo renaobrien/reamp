@@ -11,6 +11,7 @@ import butterchurn from 'butterchurn';
 import basePack from 'butterchurn-presets';
 import extraPack from 'butterchurn-presets/lib/butterchurnPresetsExtra.min.js';
 import type { ReampApi } from '../preload.js';
+import { installDemoBridge } from './demo-bridge.js';
 import { PresetCycler } from './preset-cycler.js';
 
 declare global {
@@ -18,6 +19,9 @@ declare global {
     reamp: ReampApi;
   }
 }
+
+// Plain-browser demo mode (no Electron preload): synthesized audio.
+if (!('reamp' in window)) installDemoBridge();
 
 const AUTO_ADVANCE_MS = 30_000;
 const BLEND_SECONDS = 2.7;
