@@ -61,6 +61,10 @@
       body.mode-milkdrop #milkdrop-bg { display: block; }
       body.mode-scene #scene-bg { display: block; }
       #webamp-container { position: absolute; inset: 0; }
+      /* Smooth scaling, deliberately: no chunky pixels at any size.
+         Webamp's own stylesheet asks for pixelated rendering, so the
+         override needs !important. */
+      #webamp, #webamp * { image-rendering: auto !important; }
       #stage:fullscreen { background: #000; }
       #deck {
         flex: none;
@@ -78,9 +82,8 @@
       #vis {
         grid-row: 1 / span 2;
         width: 100%;
-        aspect-ratio: 299 / 49; /* logical vis grid, scaled crisply */
+        aspect-ratio: 299 / 49; /* the logical vis grid */
         height: auto;
-        image-rendering: pixelated;
         background: #000;
         border: 2px solid;
         border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);

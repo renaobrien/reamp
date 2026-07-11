@@ -144,7 +144,6 @@ function applyZoom(zoom: number | 'fit'): void {
   const webampEl = document.getElementById('webamp');
   if (webampEl === null) return;
   currentZoom = zoom;
-  webampEl.style.imageRendering = 'pixelated';
   ($('zoom') as HTMLSelectElement).value = String(zoom);
   webampEl.style.transform = '';
   // Webamp lays its windows out in viewport pixels inside a zero-size
@@ -168,8 +167,8 @@ function applyZoom(zoom: number | 'fit'): void {
     const right = Math.max(...rects.map((r) => r.right));
     const bottom = Math.max(...rects.map((r) => r.bottom));
     if (zoom === 'fit') {
-      // largest whole-number scale that keeps the cluster on screen;
-      // integers keep the pixel art crisp (couch and TV mode)
+      // largest scale that keeps the cluster on screen; smooth
+      // filtering means fractional scales are fine, so use the room
       scale = Math.max(
         1,
         Math.min(
@@ -178,8 +177,8 @@ function applyZoom(zoom: number | 'fit'): void {
             Math.min(
               (window.innerWidth - margin * 2) / (right - left),
               (window.innerHeight - margin * 2) / (bottom - top),
-            ),
-          ),
+            ) * 100,
+          ) / 100,
         ),
       );
     }
@@ -252,7 +251,14 @@ import('./skin-drop.js')
 
 // ---- deck vis (always on, bars/scope like the original) --------------------
 
-const deckVis = new ClassicVis($('vis') as HTMLCanvasElement);
+const deckVisCanvas = $('vis') as HTMLCanvasElement;
+const deckVis = new ClassicVis(deckVisCanvas);
+new ResizeObserver(() => {
+  deckVis.resize(
+    deckVisCanvas.clientWidth * devicePixelRatio,
+    deckVisCanvas.clientHeight * devicePixelRatio,
+  );
+}).observe(deckVisCanvas);
 let deckMode: 'bars' | 'scope' = 'bars';
 $('vis').addEventListener('click', () => {
   deckMode = deckMode === 'bars' ? 'scope' : 'bars';

@@ -2,8 +2,9 @@
  * The classic vis, drawn the way Winamp drew it: a coarse pixel grid of
  * 2px blocks with 1px gutters, the 16-step viscolor gradient from dark
  * green at the base to red at the tip, falling peak caps, and a
- * click-to-toggle oscilloscope mode. Rendered at logical resolution and
- * scaled up with pixelated image-rendering for the chunky look.
+ * click-to-toggle oscilloscope mode. The grid is logical; the canvas
+ * backing store follows the displayed size so blocks render with clean
+ * edges at any scale instead of being upscaled from a tiny bitmap.
  */
 import { PeakTracker } from '@reamp/vis-engine';
 import { DEFAULT_VISCOLORS, rgbToCss, type Rgb } from '@reamp/skins';
@@ -22,17 +23,30 @@ export const VIS_LOGICAL_HEIGHT = SEGMENTS * (SEG_H + SEG_GAP) + 1; // 49
 export type VisMode = 'bars' | 'scope';
 
 export class ClassicVis {
+  private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
   private readonly peaks = new PeakTracker(BANDS, { holdFrames: 10, gravity: 0.004 });
   private colors: readonly Rgb[] = DEFAULT_VISCOLORS;
   private mode: VisMode = 'bars';
 
   constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
     canvas.width = VIS_LOGICAL_WIDTH;
     canvas.height = VIS_LOGICAL_HEIGHT;
     const ctx = canvas.getContext('2d');
     if (ctx === null) throw new Error('canvas 2d context unavailable');
     this.ctx = ctx;
+  }
+
+  /** Match the backing store to the displayed pixel size (CSS px times
+   * devicePixelRatio) so the grid draws sharp at any size. */
+  resize(pxWidth: number, pxHeight: number): void {
+    const w = Math.round(pxWidth);
+    const h = Math.round(pxHeight);
+    if (w > 0 && h > 0 && (w !== this.canvas.width || h !== this.canvas.height)) {
+      this.canvas.width = w;
+      this.canvas.height = h;
+    }
   }
 
   /** Swap in a skin's palette (viscolor.txt order). */
@@ -45,6 +59,15 @@ export class ClassicVis {
   }
 
   render(frame: VisFrameEvent): void {
+    // draw in logical grid units; the transform maps to the backing store
+    this.ctx.setTransform(
+      this.canvas.width / VIS_LOGICAL_WIDTH,
+      0,
+      0,
+      this.canvas.height / VIS_LOGICAL_HEIGHT,
+      0,
+      0,
+    );
     this.drawBackground();
     if (this.mode === 'bars') this.drawBars(frame.levels);
     else this.drawScope(frame.wave);
