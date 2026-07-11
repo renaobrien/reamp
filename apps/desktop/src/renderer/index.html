@@ -112,7 +112,8 @@
         font: inherit;
         letter-spacing: inherit;
         text-transform: inherit;
-        padding: 0.25rem 0.9rem;
+        padding: 0.4rem 1rem;
+        min-width: 2.6rem;
         cursor: pointer;
       }
       button:active,
@@ -136,7 +137,20 @@
         white-space: nowrap;
         text-overflow: ellipsis;
         max-width: 40ch;
+        user-select: text; /* errors must be copyable */
       }
+      #settings-panel, #playlist-panel { user-select: text; }
+      body.deck-hidden #deck { display: none; }
+      #deck-toggle {
+        position: absolute;
+        right: 0.7rem;
+        top: 0.4rem;
+        z-index: 6;
+        padding: 0.15rem 0.6rem;
+        font-size: 0.85rem;
+        color: var(--dim);
+      }
+      /* Webamp zoom: scale factor set via inline style on #webamp */
       #capture {
         color: #ff8a5a;
         flex: none;
@@ -205,6 +219,7 @@
   <body id="stage-root">
     <div id="titlebar">Reamp</div>
     <div id="stage">
+      <button id="deck-toggle" title="Show or hide the control deck">deck ▾</button>
       <canvas id="milkdrop-bg"></canvas>
       <canvas id="scene-bg"></canvas>
       <div id="webamp-container"></div>
@@ -212,10 +227,12 @@
         <h3>Settings</h3>
         <dl>
           <dt>Capture</dt><dd id="set-capture">…</dd>
-          <dt>Audio source</dt><dd id="set-sidecar">…</dd>
+          <dt>Audio source</dt><dd id="set-sidecar" title="What the visuals are listening to">…</dd>
+          <dt>Log file</dt><dd id="set-logfile">…</dd>
           <dt>Version</dt><dd id="set-version">…</dd>
         </dl>
-        <button id="send-feedback">Send Feedback</button>
+        <button id="send-feedback" title="Opens a prefilled GitHub issue with diagnostics and the recent log; saves a screenshot next to the logs">Send Feedback</button>
+        <button id="open-logs" title="Reveal reamp.log in Finder">Open Logs</button>
       </aside>
       <aside id="playlist-panel" aria-label="Playlists">
         <h3><span id="playlist-title">Playlists</span><button id="playlist-back" hidden>‹ Back</button></h3>
@@ -236,19 +253,24 @@
           <button id="next" title="Next">⏭</button>
         </span>
         <span class="btn-group" role="group" aria-label="Stage visuals">
-          <button id="stage-prev" title="Previous visual">‹</button>
-          <button id="stage-name" title="Cycle stage visual">Off</button>
-          <button id="stage-next" title="Next visual">›</button>
-          <button id="fullscreen" title="Fullscreen visuals">⛶</button>
+          <button id="stage-prev" title="Previous stage visual (behind the player)">‹</button>
+          <button id="stage-name" title="Stage visual: click to cycle through Off, Tunnel, Plasma, Swarm, Milkdrop">Off</button>
+          <button id="stage-next" title="Next stage visual (behind the player)">›</button>
+          <button id="fullscreen" title="Fullscreen the stage visuals (Esc to exit)">⛶</button>
         </span>
+        <select id="zoom" title="Player size: scales the Winamp windows">
+          <option value="1">1x</option>
+          <option value="2">2x</option>
+          <option value="3">3x</option>
+        </select>
         <span class="btn-group" id="preset-controls">
           <button id="preset-prev" title="Previous preset">‹</button>
           <button id="preset-random" title="Random preset">?</button>
           <button id="preset-next" title="Next preset">›</button>
         </span>
-        <button id="playlists" title="Browse playlists">Playlists</button>
-        <button id="settings-btn" title="Settings">⚙</button>
-        <select id="source" title="Source">
+        <button id="playlists" title="Browse playlists (Apple Music; Spotify needs API mode)">Playlists</button>
+        <button id="settings-btn" title="Settings: capture status, version, feedback, logs">⚙</button>
+        <select id="source" title="Which app Reamp controls: Spotify or Apple Music">
           <option value="spotify">Spotify</option>
           <option value="apple-music">Apple Music</option>
         </select>

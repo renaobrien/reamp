@@ -38,6 +38,7 @@ const api = {
   getVisState: (): Promise<VisStateEvent> => ipcRenderer.invoke(IPC.getVisState),
   getAppInfo: (): Promise<AppInfo> => ipcRenderer.invoke(IPC.getAppInfo),
   sendFeedback: (): Promise<void> => ipcRenderer.invoke(IPC.sendFeedback),
+  openLogs: (): Promise<void> => ipcRenderer.invoke(IPC.openLogs),
 };
 
 export type ReampApi = typeof api;

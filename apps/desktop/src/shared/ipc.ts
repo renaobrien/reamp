@@ -41,6 +41,8 @@ export const IPC = {
   getAppInfo: 'reamp:get-app-info',
   /** invoke() -> void; opens the prefilled feedback issue in the browser */
   sendFeedback: 'reamp:send-feedback',
+  /** invoke() -> void; reveals the log file in Finder */
+  openLogs: 'reamp:open-logs',
 } as const;
 
 export interface VisStateEvent {
@@ -53,11 +55,16 @@ export interface AppInfo {
   mode: 'desktop-control' | 'api';
   /** What the vis pipeline is running on. */
   sidecar: string;
+  /** Where field debugging lives. */
+  logFile: string;
 }
 
 export interface PersistedSettings {
   source?: string;
   stageMode?: string;
+  /** Webamp scale factor (1..3). */
+  webampZoom?: number;
+  deckHidden?: boolean;
 }
 
 export interface VisFrameEvent {

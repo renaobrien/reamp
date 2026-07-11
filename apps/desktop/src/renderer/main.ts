@@ -22,6 +22,12 @@ declare global {
 // preload, so run in demo mode with synthesized audio and fake tracks.
 if (!('reamp' in window)) installDemoBridge();
 
+// Uncaught renderer errors land in the main-process log via console capture.
+window.addEventListener('error', (e) => console.error(`uncaught: ${e.message} @ ${e.filename}:${e.lineno}`));
+window.addEventListener('unhandledrejection', (e) =>
+  console.error(`unhandled rejection: ${String(e.reason)}`),
+);
+
 const $ = (id: string): HTMLElement => {
   const el = document.getElementById(id);
   if (el === null) throw new Error(`missing element #${id}`);
@@ -77,9 +83,36 @@ function applySkinUrl(url: string): void {
   webampRef?.setSkinFromUrl(url);
 }
 
+/**
+ * Webamp's next/previous buttons operate on its internal playlist (one
+ * entry in our world), so they were silent no-ops. Delegate clicks on the
+ * real skin buttons to the transport instead.
+ */
+function hookWebampTransport(): void {
+  const webampEl = document.getElementById('webamp');
+  if (webampEl === null) return;
+  webampEl.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('#next') !== null) send({ action: 'next' });
+    else if (target.closest('#previous') !== null) send({ action: 'previous' });
+  });
+}
+
+function applyZoom(zoom: number): void {
+  const webampEl = document.getElementById('webamp');
+  if (webampEl === null) return;
+  webampEl.style.transform = zoom === 1 ? '' : `scale(${zoom})`;
+  webampEl.style.transformOrigin = '50% 45%';
+  webampEl.style.imageRendering = 'pixelated';
+  ($('zoom') as HTMLSelectElement).value = String(zoom);
+}
+
 import('./webamp-host.js')
   .then(async ({ mountWebamp }) => {
     webampRef = await mountWebamp(window.reamp, $('webamp-container'), setStatus);
+    hookWebampTransport();
+    const settings = await window.reamp.getSettings().catch(() => ({}) as { webampZoom?: number });
+    applyZoom(settings.webampZoom ?? 2);
     // restore the persisted skin once Webamp is up
     const saved = await window.reamp.getSavedSkin();
     if (saved !== null && saved.byteLength > 0) {
@@ -240,14 +273,20 @@ $('fullscreen').addEventListener('click', () => {
   else void document.exitFullscreen();
 });
 
-// restore the persisted stage mode and source selection
+// restore persisted stage mode, source, and deck visibility; first launch
+// opens on Tunnel so the stage visuals introduce themselves
 void window.reamp
   .getSettings()
   .then((s) => {
     const idx = STAGE_MODES.indexOf(s.stageMode as (typeof STAGE_MODES)[number]);
-    if (idx > 0) setStageMode(idx, false);
+    if (idx >= 0) setStageMode(idx, false);
+    else setStageMode(1, false); // Tunnel by default
     if (s.source === 'spotify' || s.source === 'apple-music') {
       ($('source') as HTMLSelectElement).value = s.source;
+    }
+    if (s.deckHidden === true) {
+      document.body.classList.add('deck-hidden');
+      $('deck-toggle').textContent = 'deck ▴';
     }
   })
   .catch(() => {});
@@ -271,6 +310,8 @@ void window.reamp
   .then((info) => {
     $('set-sidecar').textContent = info.sidecar;
     $('set-version').textContent = `${info.version} (${info.mode})`;
+    $('set-logfile').textContent = info.logFile;
+    $('set-logfile').title = info.logFile;
   })
   .catch(() => {});
 
@@ -279,6 +320,19 @@ $('settings-btn').addEventListener('click', () => {
 });
 $('send-feedback').addEventListener('click', () => {
   void window.reamp.sendFeedback().catch(() => {});
+});
+$('open-logs').addEventListener('click', () => {
+  void window.reamp.openLogs().catch(() => {});
+});
+$('zoom').addEventListener('change', (e) => {
+  const zoom = Number((e.target as HTMLSelectElement).value);
+  applyZoom(zoom);
+  void window.reamp.saveSettings({ webampZoom: zoom }).catch(() => {});
+});
+$('deck-toggle').addEventListener('click', () => {
+  const hidden = document.body.classList.toggle('deck-hidden');
+  $('deck-toggle').textContent = hidden ? 'deck ▴' : 'deck ▾';
+  void window.reamp.saveSettings({ deckHidden: hidden }).catch(() => {});
 });
 
 // ---- playlist browser --------------------------------------------------------
