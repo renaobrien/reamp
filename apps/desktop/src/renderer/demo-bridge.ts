@@ -62,9 +62,15 @@ export function installDemoBridge(): void {
   const api: ReampApi = {
     transport: (cmd) => {
       switch (cmd.action) {
-        case 'play':
+        case 'play': {
+          const m = /^demo:track:(\d+)$/.exec(cmd.uri ?? '');
+          if (m !== null) {
+            trackIndex = Number(m[1]) % DEMO_TRACKS.length;
+            positionMs = 0;
+          }
           playing = true;
           break;
+        }
         case 'pause':
           playing = false;
           break;
@@ -93,8 +99,19 @@ export function installDemoBridge(): void {
     setSource: () => Promise.resolve({ status: 'authorized', detail: 'demo mode' }),
     getSource: () => Promise.resolve('spotify'),
     auth: () => Promise.resolve({ status: 'authorized', detail: 'demo mode' }),
-    getPlaylists: () => Promise.resolve([{ id: 'demo', name: 'Loopback Sessions', trackCount: DEMO_TRACKS.length }]),
-    getPlaylistTracks: () => Promise.resolve([]),
+    getPlaylists: () =>
+      Promise.resolve([{ id: 'demo', name: 'Loopback Sessions', trackCount: DEMO_TRACKS.length }]),
+    getPlaylistTracks: () =>
+      Promise.resolve(
+        DEMO_TRACKS.map((t, i) => ({
+          id: `demo-${i}`,
+          uri: `demo:track:${i}`,
+          title: t.title,
+          artist: t.artist,
+          album: t.album,
+          durationMs: t.durationMs,
+        })),
+      ),
     onPlayerState: (cb) => {
       stateListeners.push(cb);
       setTimeout(emitState, 0);

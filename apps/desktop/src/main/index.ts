@@ -10,7 +10,7 @@
  * dist/preload.cjs, renderer at dist/renderer/.
  */
 import { join } from 'node:path';
-import { BrowserWindow, Menu, app, shell } from 'electron';
+import { BrowserWindow, Menu, app, screen, shell } from 'electron';
 import { MusicDesktopAdapter, SpotifyDesktopAdapter } from '@reamp/adapters';
 import { AdapterHost } from './adapter-host.js';
 import { collectSystemInfo, formatDiagnostics } from './diagnostics.js';
@@ -18,8 +18,17 @@ import { buildFeedbackUrl } from './feedback.js';
 import { runOsaScript } from './osascript.js';
 import { broadcastToWindows, registerIpc } from './register-ipc.js';
 import { IPC } from '../shared/ipc.js';
+import { serveRenderer, type RendererServer } from './renderer-server.js';
 import { SettingsStore } from './settings.js';
 import { VisService } from './vis-service.js';
+
+/**
+ * The renderer is served over 127.0.0.1, not file://: Chromium blocks
+ * ES-module scripts from file:// origins with CORS errors, which
+ * silently broke every code-split chunk (Webamp, Milkdrop, skin-drop)
+ * in the first on-device run.
+ */
+let renderer: RendererServer | null = null;
 
 /**
  * The real SCK binary when REAMP_SIDECAR_BIN points at one; otherwise the
@@ -104,14 +113,17 @@ function openMilkdropWindow(): void {
   milkdropWindow.on('closed', () => {
     milkdropWindow = null;
   });
-  void milkdropWindow.loadFile(join(__dirname, '../renderer/milkdrop.html'));
+  void milkdropWindow.loadURL(`${renderer!.url}/milkdrop.html`);
 }
 
 function createWindow(settings: SettingsStore): void {
   const saved = settings.load().windowBounds;
+  // first launch: take most of the screen; after that, whatever the user
+  // resized to wins (saved on close)
+  const workArea = screen.getPrimaryDisplay().workAreaSize;
   const win = new BrowserWindow({
-    width: saved?.width ?? 660,
-    height: saved?.height ?? 640,
+    width: saved?.width ?? Math.min(1400, Math.round(workArea.width * 0.85)),
+    height: saved?.height ?? Math.min(1000, Math.round(workArea.height * 0.9)),
     x: saved?.x,
     y: saved?.y,
     minWidth: 640,
@@ -129,10 +141,11 @@ function createWindow(settings: SettingsStore): void {
     },
   });
   win.on('close', () => settings.save({ windowBounds: win.getBounds() }));
-  void win.loadFile(join(__dirname, '../renderer/index.html'));
+  void win.loadURL(`${renderer!.url}/index.html`);
 }
 
-void app.whenReady().then(() => {
+void app.whenReady().then(async () => {
+  renderer = await serveRenderer(join(__dirname, '../renderer'));
   const windows = (): BrowserWindow[] => BrowserWindow.getAllWindows();
   const settings = new SettingsStore(app.getPath('userData'));
   const savedSource = settings.load().source;
@@ -151,7 +164,10 @@ void app.whenReady().then(() => {
     broadcast: broadcastToWindows(IPC.visFrame, windows),
   });
   vis.start();
-  app.on('will-quit', () => vis.stop());
+  app.on('will-quit', () => {
+    vis.stop();
+    renderer?.close();
+  });
 
   Menu.setApplicationMenu(buildMenu(host));
   createWindow(settings);
