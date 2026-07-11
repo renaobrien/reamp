@@ -41,17 +41,17 @@ this mode is already built and tested; the playback shell is deferred.
 
 ## Status
 
-Everything below is written and unit tested (typecheck strict, 80+ tests).
+Everything below is written and unit tested (typecheck strict, 114 tests).
 What remains is hardware-bound: the Swift capture binary, and verifying
 the AppleScript adapters and Webamp rendering on a real Mac with a display.
 
 | Milestone | What | State |
 |---|---|---|
 | M0 | Desktop-control adapters for Spotify.app and Music.app | code done, needs macOS verification |
-| M1 | Swift ScreenCaptureKit sidecar to PCM ring buffer to live FFT | not started |
+| M1 | Swift ScreenCaptureKit sidecar to PCM ring buffer to live FFT | full draft written, needs first compile on a Mac |
 | M2 | Electron shell, Webamp embedded, adapters wired to transport, marquee, playlist | code done, needs display verification |
 | M3 | Classic vis window (viscolor.txt aware) and detachable Butterchurn | code done, needs display verification |
-| M4 | Settings, onboarding, skin drag-drop, packaging, notarization: v1 | not started |
+| M4 | Settings, onboarding, skin drag-drop, packaging, notarization: v1 | in progress: skin drag-drop + persistence done |
 | M5+ | API mode: castLabs ECS spike, Web Playback SDK, MusicKit JS | later, optional |
 
 Working and tested today: both desktop-control adapters, the
@@ -115,6 +115,7 @@ pnpm --filter @reamp/desktop start   # build and launch
 ```
 
 Spotify or Music should be running; the app never launches them itself.
+First-run checklist for a Mac: [docs/mac-testing.md](docs/mac-testing.md).
 Until the ScreenCaptureKit sidecar lands, visuals run on the mock
 sidecar's synthesized audio (set `REAMP_SIDECAR_BIN` to a real capture
 binary to switch).

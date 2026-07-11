@@ -37,6 +37,7 @@ export function installDemoBridge(): void {
   let volume = 80;
   let shuffle = false;
   let repeat: 'off' | 'track' | 'context' = 'off';
+  let demoSkin: ArrayBuffer | null = null;
 
   const emitState = (): void => {
     const event: PlayerStateEvent = {
@@ -100,6 +101,30 @@ export function installDemoBridge(): void {
     },
     onVisFrame: (cb) => {
       visListeners.push(cb);
+    },
+    // persistence: settings survive reloads via localStorage; the dropped
+    // skin lives in memory for the tab's lifetime (too large to stash)
+    getSettings: () => {
+      try {
+        return Promise.resolve(JSON.parse(localStorage.getItem('reamp-demo-settings') ?? '{}'));
+      } catch {
+        return Promise.resolve({});
+      }
+    },
+    saveSettings: (patch) => {
+      let current: Record<string, unknown> = {};
+      try {
+        current = JSON.parse(localStorage.getItem('reamp-demo-settings') ?? '{}');
+      } catch {
+        // start fresh
+      }
+      localStorage.setItem('reamp-demo-settings', JSON.stringify({ ...current, ...patch }));
+      return Promise.resolve();
+    },
+    getSavedSkin: () => Promise.resolve(demoSkin),
+    saveSkin: (data) => {
+      demoSkin = data;
+      return Promise.resolve();
     },
   };
   (window as unknown as { reamp: ReampApi }).reamp = api;

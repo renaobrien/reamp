@@ -18,6 +18,7 @@ import { buildFeedbackUrl } from './feedback.js';
 import { runOsaScript } from './osascript.js';
 import { broadcastToWindows, registerIpc } from './register-ipc.js';
 import { IPC } from '../shared/ipc.js';
+import { SettingsStore } from './settings.js';
 import { VisService } from './vis-service.js';
 
 /**
@@ -106,10 +107,13 @@ function openMilkdropWindow(): void {
   void milkdropWindow.loadFile(join(__dirname, '../renderer/milkdrop.html'));
 }
 
-function createWindow(): void {
+function createWindow(settings: SettingsStore): void {
+  const saved = settings.load().windowBounds;
   const win = new BrowserWindow({
-    width: 660,
-    height: 640,
+    width: saved?.width ?? 660,
+    height: saved?.height ?? 640,
+    x: saved?.x,
+    y: saved?.y,
     minWidth: 640,
     minHeight: 480,
     title: 'Reamp',
@@ -124,20 +128,23 @@ function createWindow(): void {
       sandbox: true,
     },
   });
+  win.on('close', () => settings.save({ windowBounds: win.getBounds() }));
   void win.loadFile(join(__dirname, '../renderer/index.html'));
 }
 
 void app.whenReady().then(() => {
   const windows = (): BrowserWindow[] => BrowserWindow.getAllWindows();
+  const settings = new SettingsStore(app.getPath('userData'));
+  const savedSource = settings.load().source;
   const host = new AdapterHost({
     adapters: {
       spotify: new SpotifyDesktopAdapter({ runOsaScript }),
       'apple-music': new MusicDesktopAdapter({ runOsaScript }),
     },
-    initialSource: 'spotify',
+    initialSource: savedSource === 'apple-music' ? 'apple-music' : 'spotify',
     broadcast: broadcastToWindows(IPC.playerState, windows),
   });
-  registerIpc(host);
+  registerIpc(host, settings);
 
   const vis = new VisService({
     ...resolveSidecar(),
@@ -147,9 +154,9 @@ void app.whenReady().then(() => {
   app.on('will-quit', () => vis.stop());
 
   Menu.setApplicationMenu(buildMenu(host));
-  createWindow();
+  createWindow(settings);
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) createWindow(settings);
   });
 });
 

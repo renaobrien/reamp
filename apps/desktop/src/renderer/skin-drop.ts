@@ -20,7 +20,8 @@ export async function extractViscolors(data: ArrayBuffer): Promise<Rgb[] | null>
 }
 
 export interface SkinDropHandlers {
-  onSkin: (objectUrl: string, fileName: string) => void;
+  /** data is the raw archive, so callers can persist the skin. */
+  onSkin: (objectUrl: string, fileName: string, data: ArrayBuffer) => void;
   onColors: (colors: Rgb[]) => void;
   onError: (message: string) => void;
 }
@@ -38,7 +39,7 @@ export function installSkinDrop(target: HTMLElement, handlers: SkinDropHandlers)
         const data = await file.arrayBuffer();
         const colors = await extractViscolors(data);
         if (colors !== null) handlers.onColors(colors);
-        handlers.onSkin(URL.createObjectURL(new Blob([data])), file.name);
+        handlers.onSkin(URL.createObjectURL(new Blob([data])), file.name, data);
       } catch (err) {
         handlers.onError(
           `could not load ${file.name}: ${String(err instanceof Error ? err.message : err)}`,
