@@ -101,10 +101,41 @@ function hookWebampTransport(): void {
 function applyZoom(zoom: number): void {
   const webampEl = document.getElementById('webamp');
   if (webampEl === null) return;
-  webampEl.style.transform = zoom === 1 ? '' : `scale(${zoom})`;
-  webampEl.style.transformOrigin = '50% 45%';
   webampEl.style.imageRendering = 'pixelated';
   ($('zoom') as HTMLSelectElement).value = String(zoom);
+  webampEl.style.transform = '';
+  if (zoom === 1) return;
+  // Webamp lays its windows out in viewport pixels inside a zero-size
+  // root div, so a percentage transform origin resolves to 0,0 and a
+  // plain scale slides the whole cluster down and right (fully off
+  // screen at 3x). Measure the cluster with the transform cleared and
+  // scale about its own center; when the scaled cluster would poke past
+  // the top or left edge, anchor that edge instead so the main window
+  // controls stay reachable and only the playlist bottom gets clipped.
+  const rects = Array.from(
+    document.querySelectorAll<HTMLElement>('#webamp [id$="-window"]'),
+    (el) => el.getBoundingClientRect(),
+  ).filter((r) => r.width > 0 && r.height > 0);
+  const margin = 48;
+  let originX = window.innerWidth / 2;
+  let originY = window.innerHeight * 0.45;
+  if (rects.length > 0) {
+    const left = Math.min(...rects.map((r) => r.left));
+    const top = Math.min(...rects.map((r) => r.top));
+    const right = Math.max(...rects.map((r) => r.right));
+    const bottom = Math.max(...rects.map((r) => r.bottom));
+    originX = (left + right) / 2;
+    originY = (top + bottom) / 2;
+    if (originX - ((right - left) * zoom) / 2 < margin) {
+      originX = (left * zoom - margin) / (zoom - 1);
+    }
+    if (originY - ((bottom - top) * zoom) / 2 < margin) {
+      originY = (top * zoom - margin) / (zoom - 1);
+    }
+  }
+  const host = webampEl.getBoundingClientRect();
+  webampEl.style.transformOrigin = `${originX - host.x}px ${originY - host.y}px`;
+  webampEl.style.transform = `scale(${zoom})`;
 }
 
 import('./webamp-host.js')
