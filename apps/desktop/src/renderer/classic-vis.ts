@@ -33,14 +33,15 @@ export class ClassicVis {
     const ctx = canvas.getContext('2d');
     if (ctx === null) throw new Error('canvas 2d context unavailable');
     this.ctx = ctx;
-    canvas.addEventListener('click', () => {
-      this.mode = this.mode === 'bars' ? 'scope' : 'bars';
-    });
   }
 
   /** Swap in a skin's palette (viscolor.txt order). */
   setColors(colors: readonly Rgb[]): void {
     this.colors = colors;
+  }
+
+  setMode(mode: VisMode): void {
+    this.mode = mode;
   }
 
   render(frame: VisFrameEvent): void {

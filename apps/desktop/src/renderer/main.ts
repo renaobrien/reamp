@@ -1,12 +1,16 @@
 /**
- * Renderer entry: mounts Webamp, drives the classic vis deck, and keeps
- * the fallback transport controls wired. Everything reaches the main
- * process only through the `window.reamp` bridge.
+ * Renderer entry: mounts Webamp on the stage, drives the deck (classic
+ * vis, transport, readout), and manages the stage visuals. The deck
+ * canvas always shows the classic vis (click flips bars/scope, like the
+ * original). The stage backdrop behind Webamp cycles Off / Tunnel /
+ * Plasma / Swarm / Milkdrop, with a fullscreen option for all of them.
  */
-import type { PlayerStateEvent, TransportCommand } from '../shared/ipc.js';
+import type { PlayerStateEvent, TransportCommand, VisFrameEvent } from '../shared/ipc.js';
 import type { ReampApi } from '../preload.js';
 import { ClassicVis } from './classic-vis.js';
 import { installDemoBridge } from './demo-bridge.js';
+import type { MilkdropEngine } from './milkdrop-engine.js';
+import { FeatureExtractor, createScenes, type SpectralFeatures } from './scenes.js';
 
 declare global {
   interface Window {
@@ -29,38 +33,27 @@ function fmtTime(ms: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
+function setStatus(text: string): void {
+  $('status').textContent = text;
+}
+
 function send(cmd: TransportCommand): void {
   void window.reamp.transport(cmd).catch((err: unknown) => {
-    $('status').textContent = String(err instanceof Error ? err.message : err);
+    setStatus(String(err instanceof Error ? err.message : err));
   });
 }
 
-function render(event: PlayerStateEvent): void {
-  const { state, source } = event;
-  $('marquee').textContent = `${state.track.artist} - ${state.track.title}`;
-  $('time').textContent = `${fmtTime(state.positionMs)} / ${fmtTime(state.track.durationMs)}`;
-  $('status').textContent = `${source} · ${state.playing ? 'playing' : 'paused'}`;
-  ($('playpause') as HTMLButtonElement).textContent = state.playing ? '❚❚' : '▶';
-}
-
-// Webamp mounts into the main area; the deck below stays as the always-on
-// diagnostic surface until Webamp is verified on a real display.
-import('./webamp-host.js')
-  .then(({ mountWebamp }) => mountWebamp(window.reamp, $('webamp-container')))
-  .catch((err: unknown) => {
-    $('status').textContent = `Webamp failed to mount: ${String(
-      err instanceof Error ? err.message : err,
-    )}`;
-  });
-
-const vis = new ClassicVis($('vis') as HTMLCanvasElement);
-window.reamp.onVisFrame((frame) => vis.render(frame));
+// ---- player readout + transport -------------------------------------------
 
 let playing = false;
 
-window.reamp.onPlayerState((event) => {
-  playing = event.state.playing;
-  render(event);
+window.reamp.onPlayerState((event: PlayerStateEvent) => {
+  const { state, source } = event;
+  playing = state.playing;
+  $('marquee').textContent = `${state.track.artist} - ${state.track.title}`;
+  $('time').textContent = `${fmtTime(state.positionMs)} / ${fmtTime(state.track.durationMs)}`;
+  setStatus(`${source} · ${state.playing ? 'playing' : 'paused'}`);
+  ($('playpause') as HTMLButtonElement).textContent = state.playing ? '❚❚' : '▶';
 });
 
 $('prev').addEventListener('click', () => send({ action: 'previous' }));
@@ -70,7 +63,145 @@ $('playpause').addEventListener('click', () =>
 $('next').addEventListener('click', () => send({ action: 'next' }));
 $('source').addEventListener('change', (e) => {
   const id = (e.target as HTMLSelectElement).value;
-  void window.reamp.setSource(id).then(() => {
-    $('status').textContent = `${id} · switched`;
+  void window.reamp.setSource(id).then(() => setStatus(`${id} · switched`));
+});
+
+// ---- Webamp on the stage ---------------------------------------------------
+
+import('./webamp-host.js')
+  .then(({ mountWebamp }) => mountWebamp(window.reamp, $('webamp-container')))
+  .catch((err: unknown) => {
+    setStatus(`Webamp failed to mount: ${String(err instanceof Error ? err.message : err)}`);
   });
+
+// ---- deck vis (always on, bars/scope like the original) --------------------
+
+const deckVis = new ClassicVis($('vis') as HTMLCanvasElement);
+let deckMode: 'bars' | 'scope' = 'bars';
+$('vis').addEventListener('click', () => {
+  deckMode = deckMode === 'bars' ? 'scope' : 'bars';
+  deckVis.setMode(deckMode);
+});
+
+// ---- stage visuals ----------------------------------------------------------
+
+const stage = $('stage');
+const sceneCanvas = $('scene-bg') as HTMLCanvasElement;
+const milkdropCanvas = $('milkdrop-bg') as HTMLCanvasElement;
+const scenes = createScenes();
+const features = new FeatureExtractor();
+
+const STAGE_MODES = ['Off', ...scenes.map((s) => s.name), 'Milkdrop'] as const;
+let stageIndex = 0;
+let milkdrop: MilkdropEngine | null = null;
+let sceneRaf: number | null = null;
+let latestFrame: VisFrameEvent | null = null;
+let latestFeatures: SpectralFeatures = { bass: 0, mid: 0, treble: 0, beat: 0 };
+
+function sizeCanvas(canvas: HTMLCanvasElement): void {
+  canvas.width = stage.clientWidth * devicePixelRatio;
+  canvas.height = stage.clientHeight * devicePixelRatio;
+}
+
+new ResizeObserver(() => {
+  if (currentSceneIndex() !== null) sizeCanvas(sceneCanvas);
+  if (STAGE_MODES[stageIndex] === 'Milkdrop' && milkdrop !== null) {
+    milkdrop.setSize(stage.clientWidth * devicePixelRatio, stage.clientHeight * devicePixelRatio);
+  }
+}).observe(stage);
+
+function currentSceneIndex(): number | null {
+  const i = stageIndex - 1; // 0 is Off, milkdrop is last
+  return i >= 0 && i < scenes.length ? i : null;
+}
+
+function stopSceneLoop(): void {
+  if (sceneRaf !== null) {
+    cancelAnimationFrame(sceneRaf);
+    sceneRaf = null;
+  }
+}
+
+function startSceneLoop(): void {
+  if (sceneRaf !== null) return;
+  const ctx = sceneCanvas.getContext('2d');
+  if (ctx === null) return;
+  ctx.fillStyle = '#04040a';
+  ctx.fillRect(0, 0, sceneCanvas.width, sceneCanvas.height);
+  let lastT: number | null = null;
+  const loop = (t: number): void => {
+    const dt = lastT === null ? 16.7 : t - lastT;
+    lastT = t;
+    const idx = currentSceneIndex();
+    if (idx !== null && latestFrame !== null) {
+      scenes[idx]!.render(
+        ctx,
+        sceneCanvas.width,
+        sceneCanvas.height,
+        latestFrame,
+        latestFeatures,
+        t,
+        dt,
+      );
+    }
+    sceneRaf = requestAnimationFrame(loop);
+  };
+  sceneRaf = requestAnimationFrame(loop);
+}
+
+async function activateMilkdrop(): Promise<void> {
+  if (milkdrop === null) {
+    const { MilkdropEngine } = await import('./milkdrop-engine.js');
+    sizeCanvas(milkdropCanvas);
+    milkdrop = new MilkdropEngine({
+      canvas: milkdropCanvas,
+      onPreset: (name) => setStatus(name),
+    });
+  }
+  if (latestFrame !== null) milkdrop.updatePcm(latestFrame.pcm);
+  milkdrop.start();
+}
+
+function setStageMode(index: number): void {
+  stageIndex = (index + STAGE_MODES.length) % STAGE_MODES.length;
+  const mode = STAGE_MODES[stageIndex]!;
+  $('stage-name').textContent = mode;
+  document.body.classList.toggle('mode-milkdrop', mode === 'Milkdrop');
+  document.body.classList.toggle('mode-scene', currentSceneIndex() !== null);
+
+  if (mode === 'Milkdrop') {
+    stopSceneLoop();
+    activateMilkdrop().catch((err: unknown) => {
+      setStatus(String(err instanceof Error ? err.message : err));
+    });
+    return;
+  }
+  milkdrop?.stop();
+  if (currentSceneIndex() !== null) {
+    sizeCanvas(sceneCanvas);
+    startSceneLoop();
+  } else {
+    stopSceneLoop();
+  }
+}
+
+$('stage-prev').addEventListener('click', () => setStageMode(stageIndex - 1));
+$('stage-next').addEventListener('click', () => setStageMode(stageIndex + 1));
+$('stage-name').addEventListener('click', () => setStageMode(stageIndex + 1));
+$('preset-next').addEventListener('click', () => milkdrop?.next());
+$('preset-prev').addEventListener('click', () => milkdrop?.previous());
+$('preset-random').addEventListener('click', () => milkdrop?.random());
+
+$('fullscreen').addEventListener('click', () => {
+  if (document.fullscreenElement === null) void stage.requestFullscreen();
+  else void document.exitFullscreen();
+});
+
+// ---- frames ----------------------------------------------------------------
+
+window.reamp.onVisFrame((frame) => {
+  latestFrame = frame;
+  latestFeatures = features.extract(frame);
+  deckVis.render(frame);
+  milkdrop?.updatePcm(frame.pcm);
 });
