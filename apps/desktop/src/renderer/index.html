@@ -137,6 +137,29 @@
         text-overflow: ellipsis;
         max-width: 40ch;
       }
+      #capture {
+        color: #ff8a5a;
+        flex: none;
+        display: none;
+      }
+      #capture.visible { display: inline; }
+      #settings-panel {
+        position: absolute;
+        left: 0.7rem;
+        bottom: 0.7rem;
+        width: min(30rem, 90vw);
+        background: var(--panel);
+        border: 2px solid;
+        border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+        padding: 0.8rem;
+        display: none;
+        z-index: 5;
+      }
+      #settings-panel.open { display: block; }
+      #settings-panel h3 { margin: 0 0 0.6rem; font-size: 1rem; font-weight: normal; color: var(--dim); }
+      #settings-panel dl { margin: 0 0 0.8rem; display: grid; grid-template-columns: auto 1fr; gap: 0.3rem 1rem; }
+      #settings-panel dt { color: var(--dim); }
+      #settings-panel dd { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       #playlist-panel {
         position: absolute;
         right: 0.7rem;
@@ -185,6 +208,15 @@
       <canvas id="milkdrop-bg"></canvas>
       <canvas id="scene-bg"></canvas>
       <div id="webamp-container"></div>
+      <aside id="settings-panel" aria-label="Settings">
+        <h3>Settings</h3>
+        <dl>
+          <dt>Capture</dt><dd id="set-capture">…</dd>
+          <dt>Audio source</dt><dd id="set-sidecar">…</dd>
+          <dt>Version</dt><dd id="set-version">…</dd>
+        </dl>
+        <button id="send-feedback">Send Feedback</button>
+      </aside>
       <aside id="playlist-panel" aria-label="Playlists">
         <h3><span id="playlist-title">Playlists</span><button id="playlist-back" hidden>‹ Back</button></h3>
         <ul id="playlist-items"></ul>
@@ -194,6 +226,7 @@
       <canvas id="vis" title="Click to cycle vis modes" tabindex="0"></canvas>
       <div id="readout">
         <span id="marquee">Play something in Spotify or Music</span>
+        <span id="capture"></span>
         <span id="time">0:00 / 0:00</span>
       </div>
       <div id="controls">
@@ -214,6 +247,7 @@
           <button id="preset-next" title="Next preset">›</button>
         </span>
         <button id="playlists" title="Browse playlists">Playlists</button>
+        <button id="settings-btn" title="Settings">⚙</button>
         <select id="source" title="Source">
           <option value="spotify">Spotify</option>
           <option value="apple-music">Apple Music</option>

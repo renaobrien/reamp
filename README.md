@@ -3,151 +3,108 @@
 [![CI](https://github.com/renaobrien/reamp/actions/workflows/ci.yml/badge.svg)](https://github.com/renaobrien/reamp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-00e5b0.svg)](LICENSE)
 
-A Winamp 2.9 style player that controls Spotify and Apple Music, with
-visualizations driven by the actual audio: the classic 75-band spectrum
-with falling peak caps, the oscilloscope, and Milkdrop via Butterchurn.
-macOS first. Zero setup: no API keys, no accounts, no Premium requirement.
+A Winamp 2.9 style player for macOS that controls Spotify and Apple Music,
+with visuals driven by the actual audio: the classic spectrum analyzer and
+oscilloscope, Milkdrop with 245 presets, and original scenes (Tunnel,
+Plasma, Swarm) that react to the music's beat, brightness, and loudness.
 
-Load your 2003-era `.wsz` skin, hit play, and the bars move to the real music.
+No API keys, no accounts, no Premium requirement. Reamp drives the Spotify
+and Music apps already on your Mac and visualizes whatever your system is
+playing. Drop any classic `.wsz` skin on the window and it applies
+instantly, vis colors included.
 
-## How it works
+## Install and run
 
-Two facts shape the design:
-
-1. Both services stream DRM-encrypted audio, so no program can read the raw
-   stream. The visualizer analyzes the system's audio output instead
-   (loopback capture via a ScreenCaptureKit sidecar). The captured signal is
-   used for analysis only and is never written to disk.
-2. Spotify locked down its API in February 2026 (Development Mode only,
-   5-user allowlist per client ID, no audio analysis endpoints). So the API
-   is not the primary integration. The primary integration does not touch it.
-
-## Two modes
-
-**Desktop control (v1, the default).** Reamp drives the official
-Spotify and Music apps already on your Mac through their AppleScript
-interfaces, and visualizes whatever the system is playing. Zero setup: no
-API keys, no developer accounts, no Premium requirement. Transport
-controls, current-track metadata, and (for Apple Music) full playlist
-browsing all work. Spotify playlist browsing is not exposed by its
-scripting interface; that one feature needs API mode.
-
-**API mode (optional, later).** In-app playback: Reamp itself becomes a
-Spotify Connect device (Web Playback SDK) and an Apple Music player
-(MusicKit JS). Costs real friction: a bring-your-own Spotify client ID plus
-Premium, an Apple Developer membership ($99/yr) for the MusicKit token, and
-a Widevine-capable Electron build (castLabs ECS). The auth plumbing for
-this mode is already built and tested; the playback shell is deferred.
-
-## Status
-
-Everything below is written and unit tested (typecheck strict, 114 tests).
-What remains is hardware-bound: the Swift capture binary, and verifying
-the AppleScript adapters and Webamp rendering on a real Mac with a display.
-
-| Milestone | What | State |
-|---|---|---|
-| M0 | Desktop-control adapters for Spotify.app and Music.app | code done, needs macOS verification |
-| M1 | Swift ScreenCaptureKit sidecar to PCM ring buffer to live FFT | full draft written, needs first compile on a Mac |
-| M2 | Electron shell, Webamp embedded, adapters wired to transport, marquee, playlist | code done, needs display verification |
-| M3 | Classic vis window (viscolor.txt aware) and detachable Butterchurn | code done, needs display verification |
-| M4 | Settings, onboarding, skin drag-drop, packaging, notarization: v1 | in progress: skin drag-drop + persistence done |
-| M5+ | API mode: castLabs ECS spike, Web Playback SDK, MusicKit JS | later, optional |
-
-Working and tested today: both desktop-control adapters, the
-`SourceAdapter` contract, the vis-engine math (FFT, 75-band spectrum,
-falling peak caps, oscilloscope, PCM ring buffer), the viscolor.txt
-parser with the canonical default palette, the sidecar wire protocol and
-process manager with a mock sidecar (bars move on any machine), the
-Electron shell with IPC transport chain and Webamp media backend, the
-classic vis deck (pixel-authentic blocks, click to toggle spectrum and
-scope), three original math-driven stage scenes (Tunnel, Plasma, Swarm:
-spectral band energies and beat-flux detection driving fps-independent
-physics), the detachable Milkdrop window (Butterchurn fed raw loopback PCM,
-245 bundled presets, auto-cycling, fullscreen), stage visuals behind the
-player with a fullscreen option, a responsive layout that scales from
-laptop to TV, the feedback button, the
-complete Spotify PKCE auth flow for API mode, and the MusicKit token
-minting script.
-
-## Repo layout
-
-```
-apps/desktop/        Electron shell (M2)
-  src/main/          main process: osascript runner, OAuth, sidecar manager
-  src/renderer/      Webamp host, adapters, vis, settings (M2)
-  sidecar/           Swift ScreenCaptureKit audio capture (M1)
-packages/adapters/   SourceAdapter contract, desktop-control + API adapters
-packages/vis-engine/ FFT, spectrum bands, peak caps, oscilloscope, ring buffer
-packages/skins/      viscolor.txt parser, default palette, .wsz helpers
-scripts/             gen-apple-token.ts (offline MusicKit JWT, API mode)
-docs/                brief, PRD, tech spec
-```
-
-## Development
+Requires macOS 13+, Node 22+, and pnpm (`npm install -g pnpm`).
 
 ```sh
+git clone https://github.com/renaobrien/reamp.git
+cd reamp
 pnpm install
-pnpm typecheck
-pnpm test
+pnpm approve-builds     # allow Electron's binary download, then:
+pnpm install
+pnpm --filter @reamp/desktop start
 ```
 
-Node 22 or newer, pnpm 10 or newer. Conventions and platform rules live in
-[CLAUDE.md](CLAUDE.md).
+Have Spotify or Music open and playing. Reamp asks once for permission to
+control them.
 
-### Browser demo (no Electron, no macOS)
+### Real audio for the visuals
 
-The renderer runs in a plain browser with a demo bridge: synthesized
-audio drives the vis, and the transport controls a pretend playlist.
-Webamp, the classic vis deck, and Milkdrop are all real.
+Out of the box the visuals run on built-in synthetic audio. To make them
+follow your actual music, build the capture helper once (needs Xcode
+Command Line Tools) and launch with it:
 
 ```sh
-pnpm --filter @reamp/desktop demo   # then open the printed localhost URL
+cd apps/desktop/sidecar && swift build -c release && cd ../../..
+REAMP_SIDECAR_BIN=apps/desktop/sidecar/.build/release/capture-sidecar \
+  pnpm --filter @reamp/desktop start
 ```
 
-The Milkdrop window is at `/milkdrop.html` on the same host.
+macOS asks once for Screen Recording permission; that is how the system
+gates audio capture. Nothing is recorded or written to disk.
 
-### Running the real app (macOS)
+### Using it
+
+- Transport buttons, the source dropdown, and the Playlists button live in
+  the deck below the player. Playlist browsing works for Apple Music;
+  Spotify's desktop interface does not expose playlists, so pick those in
+  Spotify itself.
+- The `<` and `>` buttons cycle the stage visuals behind the player;
+  the square button goes fullscreen. Click the small vis to flip between
+  spectrum and oscilloscope. Cmd+M opens Milkdrop in its own window
+  (space for next preset, R for random, double-click for fullscreen).
+- Drag any `.wsz` skin file onto the window. Thousands live at the
+  [Winamp Skin Museum](https://skins.webamp.org).
+- The EQ window is visual-only for streaming: Reamp listens to the mix,
+  it cannot process DRM audio.
+
+### Browser demo (no install)
 
 ```sh
-pnpm approve-builds                  # once: allow Electron's binary download
-pnpm --filter @reamp/desktop start   # build and launch
+pnpm --filter @reamp/desktop demo
 ```
 
-Spotify or Music should be running; the app never launches them itself.
-First-run checklist for a Mac: [docs/mac-testing.md](docs/mac-testing.md).
-Until the ScreenCaptureKit sidecar lands, visuals run on the mock
-sidecar's synthesized audio (set `REAMP_SIDECAR_BIN` to a real capture
-binary to switch).
+Opens the same interface in your browser with procedural music and a
+pretend playlist. Milkdrop is at `/milkdrop.html` on the same host.
 
-## API mode setup (only if you want in-app playback)
+### Packaging a .app
 
-Spotify: create an app at developer.spotify.com (free, Development Mode),
-set the redirect URI to `http://127.0.0.1:8888/callback` (Spotify requires
-`127.0.0.1`, not `localhost`), and paste the client ID into settings. The
-account needs Premium. Each user of an open-source build does this for
-themselves; the 5-user allowlist is per client ID, so nobody shares quota.
+```sh
+pnpm --filter @reamp/desktop dist
+```
 
-Apple Music: requires an Apple Developer Program membership and a MusicKit
-`.p8` key (gitignored; never commit it):
+Builds `Reamp.app` and a dmg into `apps/desktop/release/`. Unsigned for
+now; right-click and choose Open on first launch. If the capture helper
+has been built it is bundled automatically.
+
+## Spotify or Apple Music inside the app (optional, advanced)
+
+The default mode needs nothing. If you want Reamp to play audio itself
+(in-app playback, Spotify playlist browsing), that requires your own
+Spotify client ID (free, developer.spotify.com, redirect URI
+`http://127.0.0.1:8888/callback`, Premium account) or an Apple Developer
+membership for a MusicKit token:
 
 ```sh
 node --experimental-strip-types scripts/gen-apple-token.ts \
   --key ~/keys/AuthKey_ABC123DEFG.p8 --key-id ABC123DEFG --team-id TEAM456789
 ```
 
+This mode is under construction; the auth plumbing exists, the playback
+shell does not yet.
+
 ## Feedback
 
-In the app: Help > Send Feedback opens a prefilled GitHub issue with a
-diagnostics block you can review before submitting. Outside the app:
+In the app: Help > Send Feedback, or the button in Settings. Outside it:
 [open an issue](https://github.com/renaobrien/reamp/issues/new/choose).
 
-## Skins
+## Contributing
 
-Webamp loads classic `.wsz` skins natively. The Winamp base skin is Llama
-Group IP and will not be bundled. The default will be a CC-licensed
-community skin, and the other 90k or so live at the
-[Winamp Skin Museum](https://skins.webamp.org).
+Development notes, conventions, and architecture live in
+[CLAUDE.md](CLAUDE.md) and [docs/](docs/). Run `pnpm typecheck` and
+`pnpm test` before sending a PR. First run on a Mac?
+[docs/mac-testing.md](docs/mac-testing.md) is the checklist.
 
 ## License
 
