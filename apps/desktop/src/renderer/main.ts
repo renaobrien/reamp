@@ -6,12 +6,17 @@
 import type { PlayerStateEvent, TransportCommand } from '../shared/ipc.js';
 import type { ReampApi } from '../preload.js';
 import { ClassicVis } from './classic-vis.js';
+import { installDemoBridge } from './demo-bridge.js';
 
 declare global {
   interface Window {
     reamp: ReampApi;
   }
 }
+
+// Outside Electron (plain browser: vite dev, static hosting) there is no
+// preload, so run in demo mode with synthesized audio and fake tracks.
+if (!('reamp' in window)) installDemoBridge();
 
 const $ = (id: string): HTMLElement => {
   const el = document.getElementById(id);

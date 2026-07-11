@@ -10,7 +10,8 @@
     "build:main": "esbuild src/main/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main/index.cjs && esbuild src/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs",
     "build:renderer": "vite build",
     "build": "pnpm build:main && pnpm build:renderer",
-    "start": "pnpm build && electron ."
+    "start": "pnpm build && electron .",
+    "demo": "vite dev"
   },
   "dependencies": {
     "@reamp/adapters": "workspace:*",
