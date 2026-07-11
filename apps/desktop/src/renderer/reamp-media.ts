@@ -30,9 +30,11 @@ export interface ReampMediaInstance {
 export function createReampMediaClass(
   bridge: ReampApi,
   onNotice?: (message: string) => void,
+  onEqTouched?: () => void,
 ): WebampMediaClass {
   let eqNoticeShown = false;
   const eqNotice = (): void => {
+    onEqTouched?.();
     if (eqNoticeShown) return;
     eqNoticeShown = true;
     onNotice?.('EQ and balance are visual-only for streaming sources (DRM audio cannot be processed)');

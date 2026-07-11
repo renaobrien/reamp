@@ -209,6 +209,47 @@
       }
       #playlist-items li:hover { background: #22223a; color: #fff; }
       #playlist-items li.note { color: var(--dim); cursor: default; white-space: normal; }
+      #eq-notice {
+        width: min(34rem, 90vw);
+        background: var(--panel);
+        color: var(--accent);
+        border: 2px solid;
+        border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+        padding: 1rem 1.2rem;
+        font: inherit;
+        letter-spacing: inherit;
+      }
+      #eq-notice::backdrop { background: rgba(4, 4, 10, 0.65); }
+      #eq-notice h3 { margin: 0 0 0.7rem; font-size: 1rem; font-weight: normal; color: var(--dim); }
+      #eq-notice p {
+        margin: 0 0 0.7rem;
+        text-transform: none;
+        letter-spacing: 0.02em;
+        line-height: 1.5;
+        color: #cdd0e0;
+      }
+      #eq-notice-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 0.9rem;
+      }
+      #eq-notice label {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--dim);
+        cursor: pointer;
+        text-transform: none;
+      }
+      #update-result {
+        margin-top: 0.5rem;
+        color: var(--dim);
+        text-transform: none;
+        letter-spacing: 0.02em;
+        user-select: text;
+      }
       /* narrow windows: stack the deck */
       @media (max-width: 640px) {
         #deck { grid-template-columns: 1fr; }
@@ -233,11 +274,23 @@
         </dl>
         <button id="send-feedback" title="Opens a prefilled GitHub issue with diagnostics and the recent log; saves a screenshot next to the logs">Send Feedback</button>
         <button id="open-logs" title="Reveal reamp.log in Finder">Open Logs</button>
+        <button id="check-update" title="Compare this build against the newest Reamp on GitHub">Check for Updates</button>
+        <div id="update-result"></div>
+        <button id="update-open" hidden title="Open the newest version on GitHub">Get Update</button>
       </aside>
       <aside id="playlist-panel" aria-label="Playlists">
         <h3><span id="playlist-title">Playlists</span><button id="playlist-back" hidden>‹ Back</button></h3>
         <ul id="playlist-items"></ul>
       </aside>
+      <dialog id="eq-notice" aria-labelledby="eq-notice-title">
+        <h3 id="eq-notice-title">About the equalizer</h3>
+        <p>Reamp is remote-controlling Spotify or Music, and macOS does not let one app reshape another app's audio. So for now the EQ and balance sliders are visual only.</p>
+        <p>A real equalizer arrives with API mode, where Reamp plays the music itself and can process the sound before it reaches your speakers. The visuals already follow the true audio through the capture helper.</p>
+        <div id="eq-notice-row">
+          <label><input type="checkbox" id="eq-notice-dismiss" /> Don't show this again</label>
+          <button id="eq-notice-close" title="Close">Got it</button>
+        </div>
+      </dialog>
     </div>
     <section id="deck">
       <canvas id="vis" title="Click to cycle vis modes" tabindex="0"></canvas>

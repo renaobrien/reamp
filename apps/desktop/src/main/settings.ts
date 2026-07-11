@@ -23,6 +23,8 @@ export interface SettingsData {
   /** Webamp scale factor (1..3). */
   webampZoom?: number;
   deckHidden?: boolean;
+  /** "Don't show again" on the EQ explainer dialog. */
+  eqNoticeDismissed?: boolean;
 }
 
 const SETTINGS_FILE = 'settings.json';
