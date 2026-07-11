@@ -28,6 +28,7 @@ export async function mountWebamp(
   });
 
   let currentTrackKey = '';
+  let lastVolume = -1;
   bridge.onPlayerState(({ state }) => {
     // Marquee + playlist follow the real track. setTracksToPlay restarts
     // playback via our media class, which is a no-op resume for streams;
@@ -47,10 +48,19 @@ export async function mountWebamp(
         },
       ]);
     }
-    // Reconcile Webamp's transport lamp with reality (external pauses).
+    // Reconcile Webamp's UI with reality: external pauses flip the lamp,
+    // volume moves the slider, shuffle/repeat follow the lit buttons.
     const status = webamp.getMediaStatus();
     if (state.playing && status !== 'PLAYING') webamp.play();
     else if (!state.playing && status === 'PLAYING') webamp.pause();
+
+    const volume = Math.round(state.volume);
+    if (volume !== lastVolume) {
+      lastVolume = volume;
+      webamp.setVolume(volume);
+    }
+    if (webamp.isShuffleEnabled() !== state.shuffle) webamp.toggleShuffle();
+    if (webamp.isRepeatEnabled() !== (state.repeat !== 'off')) webamp.toggleRepeat();
   });
 
   await webamp.renderWhenReady(container);

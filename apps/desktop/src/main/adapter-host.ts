@@ -25,6 +25,7 @@ export class AdapterHost {
   private readonly broadcast: (event: PlayerStateEvent) => void;
   private source: SourceId;
   private unsubscribe: Unsubscribe | null = null;
+  private lastState: PlayerStateEvent | null = null;
 
   constructor(opts: AdapterHostOptions) {
     this.adapters = opts.adapters;
@@ -35,6 +36,11 @@ export class AdapterHost {
 
   getSource(): SourceId {
     return this.source;
+  }
+
+  /** Most recent broadcast state, for main-process consumers (media keys). */
+  getLastState(): PlayerStateEvent | null {
+    return this.lastState;
   }
 
   async setSource(id: SourceId): Promise<AuthState> {
@@ -99,7 +105,10 @@ export class AdapterHost {
     const source = this.source;
     this.unsubscribe = this.active().onPlayerState((state) => {
       // Guard against a late emission from a previous subscription.
-      if (this.source === source) this.broadcast({ source, state });
+      if (this.source === source) {
+        this.lastState = { source, state };
+        this.broadcast(this.lastState);
+      }
     });
   }
 }

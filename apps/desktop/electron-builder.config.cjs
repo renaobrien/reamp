@@ -25,6 +25,7 @@ module.exports = {
     category: 'public.app-category.music',
     target: [{ target: 'dmg' }, { target: 'zip' }],
     darkModeSupport: true,
+    icon: 'build/icon.png',
   },
   npmRebuild: false,
 };

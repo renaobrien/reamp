@@ -12,6 +12,7 @@
  */
 import type Webamp from 'webamp';
 import type { ReampApi } from '../preload.js';
+import { AnalyserFeed } from './analyser-feed.js';
 
 // IMedia/IMediaClass are not exported from the package root; derive them
 // from the constructor options so the compiler holds us to the real
@@ -43,8 +44,10 @@ export function createReampMediaClass(
     private durationMs = 0;
     playing = false;
     private analyser: AnalyserNode | null = null;
+    private readonly feed = new AnalyserFeed();
 
     constructor() {
+      bridge.onVisFrame((frame) => this.feed.update(frame));
       bridge.onPlayerState(({ state }) => {
         const wasPlaying = this.playing;
         const trackChanged = this.durationMs !== state.track.durationMs;
@@ -116,9 +119,9 @@ export function createReampMediaClass(
     disableEq(): void {}
     enableEq(): void {}
 
-    /** Webamp's built-in vis reads this. Silent until we feed loopback PCM (M3). */
+    /** Webamp's built-in mini vis reads this; the feed serves loopback frames. */
     getAnalyser(): AnalyserNode {
-      this.analyser ??= new AudioContext().createAnalyser();
+      this.analyser ??= this.feed.attach(new AudioContext().createAnalyser());
       return this.analyser;
     }
 
