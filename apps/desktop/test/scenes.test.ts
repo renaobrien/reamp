@@ -54,7 +54,7 @@ describe('FeatureExtractor', () => {
 });
 
 describe('createScenes', () => {
-  it('provides the three named scenes', () => {
-    expect(createScenes().map((s) => s.name)).toEqual(['Tunnel', 'Plasma', 'Swarm']);
+  it('provides the four named scenes', () => {
+    expect(createScenes().map((s) => s.name)).toEqual(['Tunnel', 'Plasma', 'Swarm', 'Fractal']);
   });
 });

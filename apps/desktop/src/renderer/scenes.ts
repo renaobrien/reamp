@@ -364,8 +364,100 @@ class SwarmScene implements Scene {
   }
 }
 
+/**
+ * FRACTAL: an escape-time Julia set whose seed rides the Mandelbrot
+ * boundary, c = r * e^(i theta) with r near 0.7885, where the set stays
+ * connected and endlessly reshapes. Mids steer the orbit, bass breathes
+ * the radius, beats punch the zoom, the palette follows the music's
+ * brightness, and smooth (fractional) escape counts kill the banding.
+ * Rendered into a small buffer and upscaled, like Plasma.
+ */
+class FractalScene implements Scene {
+  readonly name = 'Fractal';
+  private buf: HTMLCanvasElement | null = null;
+  private image: ImageData | null = null;
+  private theta = 2.05; // orbit position along the boundary
+  private zoomPunch = 0;
+
+  render(
+    ctx: CanvasRenderingContext2D,
+    w: number,
+    h: number,
+    _frame: VisFrameEvent,
+    f: SpectralFeatures,
+    t: number,
+    dt: number,
+  ): void {
+    const FW = 192;
+    const FH = 108;
+    const dtn = Math.min(6, dt / 16.7);
+    if (this.buf === null) {
+      this.buf = document.createElement('canvas');
+      this.buf.width = FW;
+      this.buf.height = FH;
+    }
+    const bctx = this.buf.getContext('2d') as CanvasRenderingContext2D;
+    this.image ??= bctx.createImageData(FW, FH);
+    const px = this.image.data;
+
+    this.theta += (0.0016 + f.mid * 0.007) * dtn;
+    const r = 0.7885 + Math.sin(t * 0.00013) * 0.015 + f.bass * 0.018;
+    const cr = r * Math.cos(this.theta);
+    const ci = r * Math.sin(this.theta);
+    this.zoomPunch = Math.max(f.beat, this.zoomPunch * Math.pow(0.965, dtn));
+    const scale = 1.35 / (1 + this.zoomPunch * 0.35 + f.loudness * 0.1);
+    const aspect = FW / FH;
+    const maxIter = 48;
+    const baseHue = (25 + f.centroid * 275 + t * 0.006) % 360;
+    const glow = 0.5 + f.loudness * 0.5;
+
+    for (let y = 0; y < FH; y++) {
+      const zy0 = (y / FH - 0.5) * 2 * scale;
+      for (let x = 0; x < FW; x++) {
+        let zx = (x / FW - 0.5) * 2 * scale * aspect;
+        let zy = zy0;
+        let i = 0;
+        let zx2 = zx * zx;
+        let zy2 = zy * zy;
+        while (i < maxIter && zx2 + zy2 < 4) {
+          zy = 2 * zx * zy + ci;
+          zx = zx2 - zy2 + cr;
+          zx2 = zx * zx;
+          zy2 = zy * zy;
+          i++;
+        }
+        const o = (y * FW + x) * 4;
+        if (i >= maxIter) {
+          // inside the set: near-black, warmed slightly by beats
+          const [rr, gg, bb] = hslToRgb(baseHue / 360, 0.8, 0.02 + f.beat * 0.05);
+          px[o] = rr;
+          px[o + 1] = gg;
+          px[o + 2] = bb;
+        } else {
+          // fractional escape count for smooth gradients; the power
+          // curve keeps the far field dark so the filaments burn
+          const nu = i + 1 - Math.log2(Math.max(1e-9, Math.log(Math.sqrt(zx2 + zy2))));
+          const v = Math.min(1, Math.max(0, nu / maxIter));
+          const hue = (baseHue + v * 150 + 360) % 360;
+          const light = Math.min(0.72, 0.015 + Math.pow(v, 1.9) * glow + f.beat * 0.08);
+          const [rr, gg, bb] = hslToRgb(hue / 360, 0.9, light);
+          px[o] = rr;
+          px[o + 1] = gg;
+          px[o + 2] = bb;
+        }
+        px[o + 3] = 255;
+      }
+    }
+    bctx.putImageData(this.image, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.imageSmoothingEnabled = true;
+    ctx.globalAlpha = 1;
+    ctx.drawImage(this.buf, 0, 0, w, h);
+  }
+}
+
 export function createScenes(): Scene[] {
-  return [new TunnelScene(), new PlasmaScene(), new SwarmScene()];
+  return [new TunnelScene(), new PlasmaScene(), new SwarmScene(), new FractalScene()];
 }
 
 function hslToRgb(h: number, s: number, l: number): [number, number, number] {
