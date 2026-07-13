@@ -321,12 +321,12 @@
           <button id="stage-next" title="Next stage visual (behind the player)">›</button>
           <button id="fullscreen" title="Fullscreen the stage visuals (F; Esc to exit)">⛶</button>
         </span>
-        <select id="zoom" title="Player size: scales the Winamp windows. Fit picks the largest size the window allows">
-          <option value="1">1x</option>
-          <option value="2">2x</option>
-          <option value="3">3x</option>
-          <option value="fit">Fit</option>
-        </select>
+        <span class="btn-group" role="group" aria-label="Player size">
+          <button id="zoom-out" title="Smaller player (Cmd -)">−</button>
+          <button id="zoom-label" title="Player size; click to reset to 100% (Cmd 0)">200%</button>
+          <button id="zoom-in" title="Bigger player (Cmd +)">+</button>
+          <button id="zoom-fit" title="Size the player to fill the window">Fit</button>
+        </span>
         <span class="btn-group" id="preset-controls">
           <button id="preset-prev" title="Previous preset">‹</button>
           <button id="preset-random" title="Random preset">?</button>

@@ -39,7 +39,7 @@ function showPresetName(name: string): void {
 try {
   canvas.width = window.innerWidth * devicePixelRatio;
   canvas.height = window.innerHeight * devicePixelRatio;
-  const engine = new MilkdropEngine({ canvas, onPreset: showPresetName });
+  const engine = new MilkdropEngine({ canvas, onPreset: showPresetName, onError: fail });
   const features = new FeatureExtractor();
 
   window.reamp.onVisFrame((frame) => {
