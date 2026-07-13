@@ -51,6 +51,10 @@ gates audio capture. Nothing is recorded or written to disk.
 
 ### Using it
 
+- Two player faces. Sharp (the default) is a vector interface that stays
+  crisp at any size, TV included. Classic renders real Winamp `.wsz`
+  skins, authentic 1998 bitmaps and all; the button in the deck switches
+  between them, and dropping a skin file switches to Classic.
 - Play, skip, seek, and volume live on the player itself, or on the
   keyboard. The deck underneath covers what the skin has no buttons for:
   stage visuals, player size, playlists, settings, and the source
