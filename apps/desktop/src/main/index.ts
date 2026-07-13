@@ -172,7 +172,19 @@ function buildMenu(host: AdapterHost): Menu {
     ...(process.platform === 'darwin' ? [{ role: 'appMenu' as const }] : []),
     { role: 'fileMenu' },
     { role: 'editMenu' },
-    { role: 'viewMenu' },
+    {
+      // deliberately not role viewMenu: its Cmd+Plus/Minus/0 zoom the
+      // whole page; those chords belong to the player-size control in
+      // the renderer
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+      ],
+    },
     {
       label: 'Vis',
       submenu: [

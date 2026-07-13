@@ -139,12 +139,12 @@ eqDialog.addEventListener('close', () => {
 $('eq-notice-close').addEventListener('click', () => eqDialog.close());
 
 let currentZoom: number | 'fit' = 2;
+let lastAppliedScale = 2;
 
 function applyZoom(zoom: number | 'fit'): void {
   const webampEl = document.getElementById('webamp');
   if (webampEl === null) return;
   currentZoom = zoom;
-  ($('zoom') as HTMLSelectElement).value = String(zoom);
   webampEl.style.transform = '';
   // Webamp lays its windows out in viewport pixels inside a zero-size
   // root div, so a percentage transform origin resolves to 0,0 and a
@@ -193,13 +193,23 @@ function applyZoom(zoom: number | 'fit'): void {
       }
     }
   }
+  lastAppliedScale = scale;
+  $('zoom-label').textContent = zoom === 'fit' ? `fit ${Math.round(scale * 100)}%` : `${Math.round(scale * 100)}%`;
   if (scale === 1) return;
   const host = webampEl.getBoundingClientRect();
-  // Whole-pixel origin, or every window lands on a fractional offset
-  // (positions map to s*x - (s-1)*origin) and nearest-neighbor sampling
-  // smears the skin bitmaps into uneven columns: pixelated AND blurry.
+  // whole-pixel origin keeps the bitmaps on even offsets at every scale
   webampEl.style.transformOrigin = `${Math.round(originX - host.x)}px ${Math.round(originY - host.y)}px`;
   webampEl.style.transform = `scale(${scale})`;
+}
+
+function setZoomTo(zoom: number | 'fit'): void {
+  applyZoom(zoom);
+  void window.reamp.saveSettings({ webampZoom: zoom }).catch(() => {});
+}
+
+function zoomStep(delta: number): void {
+  const base = currentZoom === 'fit' ? lastAppliedScale : currentZoom;
+  setZoomTo(Math.min(8, Math.max(0.5, Math.round((base + delta) * 4) / 4)));
 }
 
 // fit follows the window; live-resize with the cluster pinned on screen
@@ -345,6 +355,10 @@ async function activateMilkdrop(): Promise<void> {
     milkdrop = new MilkdropEngine({
       canvas: milkdropCanvas,
       onPreset: (name) => setStatus(name),
+      onError: (message) => {
+        setStatus(message);
+        console.error(`milkdrop: ${message}`); // lands in reamp.log
+      },
     });
   }
   if (latestFrame !== null) milkdrop.updatePcm(latestFrame.pcm);
@@ -525,12 +539,10 @@ window.reamp.onUpdateProgress((event) => {
       ? `downloading… ${event.pct}%`
       : `${event.phase}…`;
 });
-$('zoom').addEventListener('change', (e) => {
-  const raw = (e.target as HTMLSelectElement).value;
-  const zoom = raw === 'fit' ? 'fit' : Number(raw);
-  applyZoom(zoom);
-  void window.reamp.saveSettings({ webampZoom: zoom }).catch(() => {});
-});
+$('zoom-in').addEventListener('click', () => zoomStep(0.25));
+$('zoom-out').addEventListener('click', () => zoomStep(-0.25));
+$('zoom-label').addEventListener('click', () => setZoomTo(1));
+$('zoom-fit').addEventListener('click', () => setZoomTo('fit'));
 $('deck-toggle').addEventListener('click', () => {
   const hidden = document.body.classList.toggle('deck-hidden');
   $('deck-toggle').textContent = hidden ? 'deck ▴' : 'deck ▾';
@@ -624,7 +636,21 @@ backBtn.addEventListener('click', () => void showPlaylists());
 // Couch reach: the essentials without hunting for small buttons. Form
 // fields, focused buttons, and the EQ dialog keep their native keys.
 document.addEventListener('keydown', (e) => {
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  // player size on the universal zoom chords, before the plain-key guard
+  if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+    if (e.key === '=' || e.key === '+') {
+      e.preventDefault();
+      zoomStep(0.25);
+    } else if (e.key === '-') {
+      e.preventDefault();
+      zoomStep(-0.25);
+    } else if (e.key === '0') {
+      e.preventDefault();
+      setZoomTo(1);
+    }
+    return;
+  }
+  if (e.altKey) return;
   const target = e.target as HTMLElement;
   if (
     target instanceof HTMLInputElement ||

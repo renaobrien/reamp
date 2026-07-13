@@ -38,6 +38,8 @@ export interface MilkdropEngineOptions {
   canvas: HTMLCanvasElement;
   /** Called whenever the preset changes, with its name. */
   onPreset?: (name: string) => void;
+  /** Called when rendering breaks beyond recovery, with a readable reason. */
+  onError?: (message: string) => void;
   /** Wall-clock fallback advance; beats usually get there first. */
   autoAdvanceMs?: number;
   /** Minimum hold before a beat may switch presets. */
@@ -53,25 +55,34 @@ export class MilkdropEngine {
   private readonly beatAdvance: BeatAdvance;
   private rafId: number | null = null;
   private autoTimer: ReturnType<typeof setInterval> | null = null;
+  private frameErrors = 0;
+  private presetSkips = 0;
 
-  /** Throws with a readable message when WebGL2 is unavailable. */
+  /** Throws with a readable message when the visualizer cannot start. */
   constructor(opts: MilkdropEngineOptions) {
     this.opts = opts;
     this.beatAdvance = new BeatAdvance(opts.beatHoldMs ?? 20_000);
-    if (opts.canvas.getContext('webgl2') === null) {
-      throw new Error('Milkdrop needs WebGL2, which this browser/GPU refused to provide');
-    }
     const butterchurn = unwrap<ButterchurnApi>(butterchurnModule);
     this.presets = {
       ...unwrap<PresetPack>(basePackModule).getPresets(),
       ...unwrap<PresetPack>(extraPackModule).getPresets(),
     };
     this.cycler = new PresetCycler(Object.keys(this.presets).sort());
-    this.visualizer = butterchurn.createVisualizer(null, opts.canvas, {
-      width: opts.canvas.width,
-      height: opts.canvas.height,
-      pixelRatio: devicePixelRatio,
-    });
+    try {
+      // butterchurn owns context creation, so it gets the attributes it
+      // wants; a pre-flight getContext here would pin the defaults
+      this.visualizer = butterchurn.createVisualizer(null, opts.canvas, {
+        width: opts.canvas.width,
+        height: opts.canvas.height,
+        pixelRatio: devicePixelRatio,
+      });
+    } catch (err) {
+      throw new Error(
+        opts.canvas.getContext('webgl2') === null
+          ? 'Milkdrop needs WebGL2, which this browser/GPU refused to provide'
+          : `Milkdrop failed to start: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
     // Start somewhere interesting: the alphabetically-first preset is a
     // sparse one, and every launch looking identical gets old anyway.
     this.cycler.randomJump();
@@ -130,14 +141,37 @@ export class MilkdropEngine {
 
   start(): void {
     if (this.rafId !== null) return;
+    // A preset whose shaders fail on this GPU must not kill the loop:
+    // real graphics drivers reject shaders that software GL accepts.
+    // Persistent failures skip to the next preset; if several presets in
+    // a row fail, the GPU is telling us no, and onError says so.
     const frame = (): void => {
-      this.visualizer.render({
-        audioLevels: {
-          timeByteArray: this.timeByteArray,
-          timeByteArrayL: this.timeByteArray,
-          timeByteArrayR: this.timeByteArray,
-        },
-      });
+      try {
+        this.visualizer.render({
+          audioLevels: {
+            timeByteArray: this.timeByteArray,
+            timeByteArrayL: this.timeByteArray,
+            timeByteArrayR: this.timeByteArray,
+          },
+        });
+        this.frameErrors = 0;
+        this.presetSkips = 0;
+      } catch (err) {
+        this.frameErrors++;
+        if (this.frameErrors >= 5) {
+          this.frameErrors = 0;
+          this.presetSkips++;
+          if (this.presetSkips > 4) {
+            this.stop();
+            this.opts.onError?.(
+              `Milkdrop rendering failed repeatedly on this GPU: ${err instanceof Error ? err.message : String(err)}`,
+            );
+            return;
+          }
+          this.cycler.next();
+          this.loadCurrent(0);
+        }
+      }
       this.rafId = requestAnimationFrame(frame);
     };
     this.rafId = requestAnimationFrame(frame);
@@ -156,8 +190,17 @@ export class MilkdropEngine {
   }
 
   private loadCurrent(blend = BLEND_SECONDS): void {
-    this.visualizer.loadPreset(this.presets[this.cycler.current]!, blend);
-    this.opts.onPreset?.(this.cycler.current);
+    // A preset that will not even load gets skipped, a few tries deep.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        this.visualizer.loadPreset(this.presets[this.cycler.current]!, blend);
+        this.opts.onPreset?.(this.cycler.current);
+        return;
+      } catch {
+        this.cycler.next();
+      }
+    }
+    this.opts.onError?.('Milkdrop presets keep failing to load on this GPU');
   }
 
   private rearmAutoAdvance(): void {
