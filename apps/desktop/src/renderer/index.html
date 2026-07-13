@@ -65,81 +65,6 @@
          Webamp's own stylesheet asks for pixelated rendering, so the
          override needs !important. */
       #webamp, #webamp * { image-rendering: auto !important; }
-      /* The Sharp player: vector face, one font-size knob scales it */
-      #sharp-player {
-        position: absolute;
-        left: 50%;
-        top: 42%;
-        transform: translate(-50%, -50%);
-        z-index: 2;
-        width: 41em;
-        font-size: 14px; /* set by the zoom control */
-        display: flex;
-        flex-direction: column;
-        gap: 0.7em;
-        padding: 0.9em 1.1em 1.1em;
-        background: linear-gradient(#20202e, #131320);
-        border: 0.18em solid;
-        border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
-        box-shadow: 0 1.2em 3em rgba(0, 0, 0, 0.55);
-      }
-      #sharp-player[hidden] { display: none; }
-      .sp-header {
-        display: flex;
-        justify-content: space-between;
-        color: var(--dim);
-        font-size: 0.75em;
-        letter-spacing: 0.35em;
-      }
-      .sp-display {
-        display: flex;
-        gap: 0.9em;
-        align-items: stretch;
-        background: #030f0a;
-        border: 0.14em solid;
-        border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
-        padding: 0.7em 0.8em;
-      }
-      .sp-time { display: flex; gap: 0.22em; align-items: center; }
-      .sp-digit { height: 3.4em; width: auto; display: block; }
-      .sp-digit rect.on { fill: #2cff9e; }
-      .sp-digit rect.off { fill: #0b2b1c; }
-      .sp-colon {
-        color: #2cff9e;
-        font-size: 2.4em;
-        line-height: 1;
-        transform: translateY(-0.08em);
-      }
-      .sp-right { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.5em; }
-      .sp-marquee {
-        color: #8fffcf;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        letter-spacing: 0.08em;
-      }
-      .sp-vis { width: 100%; flex: 1; min-height: 2.4em; background: #000; }
-      .sp-controls { display: flex; gap: 0.6em; align-items: center; }
-      #sharp-player button { font-size: 0.95em; padding: 0.35em 0.8em; min-width: 2.4em; }
-      #sharp-player input[type="range"] {
-        -webkit-appearance: none;
-        appearance: none;
-        height: 0.9em;
-        background: #0a0a14;
-        border: 0.12em solid;
-        border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
-      }
-      #sharp-player input[type="range"]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        width: 1.3em;
-        height: 1.7em;
-        background: linear-gradient(#42425a, #23232f);
-        border: 0.12em solid;
-        border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
-        cursor: pointer;
-      }
-      .sp-seek { width: 100%; }
-      .sp-volume { width: 8em; margin-left: auto; }
       #stage:fullscreen { background: #000; }
       #deck {
         flex: none;
@@ -394,9 +319,9 @@
         </dl>
         <button id="send-feedback" title="Opens a prefilled GitHub issue with diagnostics and the recent log; saves a screenshot next to the logs">Send Feedback</button>
         <button id="open-logs" title="Reveal reamp.log in Finder">Open Logs</button>
-        <button id="check-update" title="Compare this build against the newest Reamp on GitHub">Check for Updates</button>
+        <button id="check-update" title="Check for a newer Reamp and install it in place, no browser needed">Check for Updates</button>
         <div id="update-result"></div>
-        <button id="update-open" hidden title="Open the newest version on GitHub">Get Update</button>
+        <button id="update-open" hidden title="Download and install the update inside Reamp">Get Update</button>
         <h3 class="sp-section">Spotify playlists</h3>
         <p id="spotify-hint">Browse your Spotify playlists here by connecting your own (free) Spotify developer app: create one at developer.spotify.com with redirect URI http://127.0.0.1:8888/callback, then paste its client ID.</p>
         <input id="spotify-client-id" type="text" placeholder="Spotify client ID" spellcheck="false" autocomplete="off" />
@@ -437,7 +362,6 @@
           <button id="zoom-in" title="Bigger player (Cmd +)">+</button>
           <button id="zoom-fit" title="Size the player to fill the window">Fit</button>
         </span>
-        <button id="style-toggle" title="Switch between the Sharp vector player (crisp at any size) and classic Winamp .wsz skins (authentic 1998 pixels)">Classic</button>
         <span class="btn-group" id="preset-controls">
           <button id="preset-prev" title="Previous preset">‹</button>
           <button id="preset-random" title="Random preset">?</button>

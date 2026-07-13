@@ -39,13 +39,11 @@ export function registerIpc(
     useApi() ? spotifyApi!.getPlaylistTracks(id) : host.getPlaylistTracks(id),
   );
   ipcMain.handle(IPC.getSettings, () => {
-    const { source, stageMode, webampZoom, playerStyle, deckHidden, eqNoticeDismissed } =
-      settings.load();
+    const { source, stageMode, webampZoom, deckHidden, eqNoticeDismissed } = settings.load();
     return {
       source,
       stageMode,
       webampZoom,
-      playerStyle,
       deckHidden,
       eqNoticeDismissed,
     } satisfies PersistedSettings;
