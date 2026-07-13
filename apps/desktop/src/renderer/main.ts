@@ -488,6 +488,49 @@ $('capture').addEventListener('click', () => {
   $('settings-panel').classList.add('open');
 });
 
+// ---- Spotify connect (hybrid mode: API browse, desktop playback) -------------
+
+let spotifyConnected = false;
+
+function refreshSpotifyAuth(): void {
+  void window.reamp
+    .getSpotifyAuth()
+    .then((info) => {
+      spotifyConnected = info.connected;
+      $('spotify-auth-status').textContent = info.connected
+        ? `connected · playlists browse in-app`
+        : 'not connected';
+      ($('spotify-connect') as HTMLButtonElement).textContent = info.connected
+        ? 'Disconnect'
+        : 'Connect';
+      const input = $('spotify-client-id') as HTMLInputElement;
+      input.hidden = info.connected;
+      $('spotify-hint').hidden = info.connected;
+      if (info.clientId !== null) input.value = info.clientId;
+    })
+    .catch(() => {});
+}
+refreshSpotifyAuth();
+
+$('spotify-connect').addEventListener('click', () => {
+  const status = $('spotify-auth-status');
+  if (spotifyConnected) {
+    void window.reamp
+      .spotifyDisconnect()
+      .then(() => refreshSpotifyAuth())
+      .catch(() => {});
+    return;
+  }
+  const clientId = ($('spotify-client-id') as HTMLInputElement).value;
+  status.textContent = 'a browser window opened; approve access there…';
+  void window.reamp
+    .spotifyConnect(clientId)
+    .then(() => refreshSpotifyAuth())
+    .catch((err: unknown) => {
+      status.textContent = String(err instanceof Error ? err.message : err);
+    });
+});
+
 window.reamp.onVisState(renderCaptureState);
 void window.reamp.getVisState().then(renderCaptureState).catch(() => {});
 void window.reamp
@@ -633,13 +676,17 @@ async function showPlaylists(): Promise<void> {
     );
   } catch (err) {
     // Spotify desktop-control mode lands here by design: its scripting
-    // interface cannot enumerate playlists. Honest message, not a spinner.
+    // interface cannot enumerate playlists. Honest message plus the way in.
     renderItems(
       [
         { label: String(err instanceof Error ? err.message : err) },
         {
           label:
-            'Spotify does not let desktop apps list playlists. Pick music in Spotify itself and Reamp follows it. Apple Music playlists browse right here, and in-app Spotify browsing arrives with API mode.',
+            'Spotify hides playlists from desktop apps. Connect your own Spotify client ID and they browse right here (playback still runs through Spotify.app).',
+        },
+        {
+          label: '→ Connect Spotify in Settings',
+          onClick: () => $('settings-panel').classList.add('open'),
         },
       ],
       'Playlists',

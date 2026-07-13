@@ -338,6 +338,36 @@
         letter-spacing: 0.02em;
         user-select: text;
       }
+      #settings-panel h3.sp-section { margin-top: 1rem; }
+      #spotify-hint {
+        margin: 0 0 0.6rem;
+        color: var(--dim);
+        text-transform: none;
+        letter-spacing: 0.02em;
+        line-height: 1.45;
+        font-size: 0.9rem;
+        user-select: text;
+      }
+      #spotify-client-id {
+        -webkit-app-region: no-drag;
+        width: 100%;
+        margin-bottom: 0.5rem;
+        padding: 0.4rem 0.6rem;
+        background: #0a0a14;
+        color: var(--accent);
+        border: 2px solid;
+        border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+        font: inherit;
+        letter-spacing: 0.05em;
+        text-transform: none;
+      }
+      #spotify-auth-status {
+        margin-top: 0.5rem;
+        color: var(--dim);
+        text-transform: none;
+        letter-spacing: 0.02em;
+        user-select: text;
+      }
       /* narrow windows: stack the deck */
       @media (max-width: 640px) {
         #deck { grid-template-columns: 1fr; }
@@ -367,6 +397,11 @@
         <button id="check-update" title="Compare this build against the newest Reamp on GitHub">Check for Updates</button>
         <div id="update-result"></div>
         <button id="update-open" hidden title="Open the newest version on GitHub">Get Update</button>
+        <h3 class="sp-section">Spotify playlists</h3>
+        <p id="spotify-hint">Browse your Spotify playlists here by connecting your own (free) Spotify developer app: create one at developer.spotify.com with redirect URI http://127.0.0.1:8888/callback, then paste its client ID.</p>
+        <input id="spotify-client-id" type="text" placeholder="Spotify client ID" spellcheck="false" autocomplete="off" />
+        <button id="spotify-connect" title="Opens your browser to approve access">Connect</button>
+        <div id="spotify-auth-status"></div>
       </aside>
       <aside id="playlist-panel" aria-label="Playlists">
         <h3><span id="playlist-title">Playlists</span><button id="playlist-back" hidden>‹ Back</button></h3>
