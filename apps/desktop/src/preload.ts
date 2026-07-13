@@ -9,6 +9,7 @@ import {
   type InstallStart,
   type PersistedSettings,
   type PlayerStateEvent,
+  type SpotifyAuthInfo,
   type TransportCommand,
   type UpdateInfo,
   type UpdateProgressEvent,
@@ -48,6 +49,10 @@ const api = {
   onUpdateProgress: (cb: (event: UpdateProgressEvent) => void): void => {
     ipcRenderer.on(IPC.updateProgress, (_e, event: UpdateProgressEvent) => cb(event));
   },
+  getSpotifyAuth: (): Promise<SpotifyAuthInfo> => ipcRenderer.invoke(IPC.getSpotifyAuth),
+  spotifyConnect: (clientId: string): Promise<SpotifyAuthInfo> =>
+    ipcRenderer.invoke(IPC.spotifyConnect, clientId),
+  spotifyDisconnect: (): Promise<void> => ipcRenderer.invoke(IPC.spotifyDisconnect),
 };
 
 export type ReampApi = typeof api;

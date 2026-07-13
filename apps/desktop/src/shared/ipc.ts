@@ -51,7 +51,18 @@ export const IPC = {
   installUpdate: 'reamp:install-update',
   /** main -> renderer: UpdateProgressEvent while an install runs */
   updateProgress: 'reamp:update-progress',
+  /** invoke() -> SpotifyAuthInfo */
+  getSpotifyAuth: 'reamp:get-spotify-auth',
+  /** invoke(clientId) -> SpotifyAuthInfo; runs the browser OAuth flow */
+  spotifyConnect: 'reamp:spotify-connect',
+  /** invoke() -> void; forgets the stored tokens */
+  spotifyDisconnect: 'reamp:spotify-disconnect',
 } as const;
+
+export interface SpotifyAuthInfo {
+  connected: boolean;
+  clientId: string | null;
+}
 
 export interface InstallStart {
   started: boolean;

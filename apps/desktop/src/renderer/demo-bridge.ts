@@ -173,6 +173,10 @@ export function installDemoBridge(): void {
     installUpdate: () =>
       Promise.resolve({ started: false, reason: 'the browser demo updates itself' }),
     onUpdateProgress: () => {},
+    getSpotifyAuth: () => Promise.resolve({ connected: false, clientId: null }),
+    spotifyConnect: () =>
+      Promise.reject(new Error('Spotify connect lives in the desktop app, not the browser demo')),
+    spotifyDisconnect: () => Promise.resolve(),
   };
   (window as unknown as { reamp: ReampApi }).reamp = api;
 

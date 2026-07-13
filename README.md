@@ -111,21 +111,27 @@ pnpm install
 pnpm dist
 ```
 
-## Spotify or Apple Music inside the app (optional, advanced)
+## Spotify playlists in the app (optional)
 
-The default mode needs nothing. If you want Reamp to play audio itself
-(in-app playback, Spotify playlist browsing), that requires your own
-Spotify client ID (free, developer.spotify.com, redirect URI
-`http://127.0.0.1:8888/callback`, Premium account) or an Apple Developer
-membership for a MusicKit token:
+The default mode needs nothing. To browse your Spotify playlists inside
+Reamp (playback still runs through Spotify.app), connect your own free
+Spotify developer app:
 
-```sh
-node --experimental-strip-types scripts/gen-apple-token.ts \
-  --key ~/keys/AuthKey_ABC123DEFG.p8 --key-id ABC123DEFG --team-id TEAM456789
-```
+1. At [developer.spotify.com](https://developer.spotify.com/dashboard),
+   create an app. Set its redirect URI to exactly
+   `http://127.0.0.1:8888/callback`.
+2. In Reamp: gear button, paste the app's client ID under Spotify
+   playlists, click Connect, approve in the browser.
+3. The Playlists button now lists your actual playlists; clicking a
+   track plays it in Spotify.
 
-This mode is under construction; the auth plumbing exists, the playback
-shell does not yet.
+Dev-mode apps serve their owner right away; other accounts must be
+added under User Management in the dashboard. Tokens are stored
+encrypted by macOS; Reamp never ships or sees a shared key.
+
+Full in-app playback (and with it a real EQ) is the next stage of API
+mode and needs a Premium account plus, for Apple Music, a MusicKit
+token minted with `scripts/gen-apple-token.ts`.
 
 ## Feedback
 

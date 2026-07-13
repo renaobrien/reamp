@@ -11,7 +11,17 @@
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { BrowserWindow, Menu, app, dialog, globalShortcut, ipcMain, screen, shell } from 'electron';
+import {
+  BrowserWindow,
+  Menu,
+  app,
+  dialog,
+  globalShortcut,
+  ipcMain,
+  safeStorage,
+  screen,
+  shell,
+} from 'electron';
 import { MusicDesktopAdapter, SpotifyDesktopAdapter } from '@reamp/adapters';
 import { AdapterHost } from './adapter-host.js';
 import { collectSystemInfo, formatDiagnostics } from './diagnostics.js';
@@ -22,6 +32,8 @@ import { IPC, type UpdateInfo, type UpdateProgressEvent } from '../shared/ipc.js
 import { Logger } from './logger.js';
 import { serveRenderer, type RendererServer } from './renderer-server.js';
 import { SettingsStore } from './settings.js';
+import { SpotifyApi } from './spotify-api.js';
+import { TokenVault } from './token-vault.js';
 import { checkForUpdates } from './update-check.js';
 import { bundlePathFromExec, downloadAndInstall, installBlocker } from './update-install.js';
 import { VisService } from './vis-service.js';
@@ -336,7 +348,27 @@ void app.whenReady().then(async () => {
     initialSource: savedSource === 'apple-music' ? 'apple-music' : 'spotify',
     broadcast: broadcastToWindows(IPC.playerState, windows),
   });
-  registerIpc(host, settings);
+  const spotifyApi = new SpotifyApi({
+    vault: new TokenVault(app.getPath('userData'), {
+      isAvailable: () => safeStorage.isEncryptionAvailable(),
+      encrypt: (s) => safeStorage.encryptString(s),
+      decrypt: (b) => safeStorage.decryptString(b),
+    }),
+  });
+  registerIpc(host, settings, spotifyApi);
+  ipcMain.handle(IPC.getSpotifyAuth, () => ({
+    connected: spotifyApi.isConnected(),
+    clientId: spotifyApi.clientId(),
+  }));
+  ipcMain.handle(IPC.spotifyConnect, async (_e, clientId: string) => {
+    await spotifyApi.connect(clientId, (url) => void shell.openExternal(url));
+    logger?.log('spotify', 'connected via user client ID');
+    return { connected: true, clientId: spotifyApi.clientId() };
+  });
+  ipcMain.handle(IPC.spotifyDisconnect, () => {
+    spotifyApi.disconnect();
+    logger?.log('spotify', 'disconnected');
+  });
 
   const sidecar = resolveSidecar();
   let lastVisState: { state: string; detail?: string } = { state: 'idle' };
