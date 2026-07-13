@@ -44,7 +44,10 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: |
           pnpm build
-          ./node_modules/.bin/electron-builder --config electron-builder.config.cjs --mac --arm64 --x64
+          # --publish never: build artifacts only. electron-builder would
+          # otherwise auto-publish to GitHub in CI (403 without a token);
+          # the Publish release step below uploads the artifacts instead.
+          ./node_modules/.bin/electron-builder --config electron-builder.config.cjs --mac --arm64 --x64 --publish never
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
