@@ -1,6 +1,6 @@
 {
   "name": "@reamp/desktop",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "description": "A Winamp-style player and visualizer for Spotify and Apple Music",
   "author": "renaobrien",
