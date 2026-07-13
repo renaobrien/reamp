@@ -44,7 +44,24 @@ describe('checkForUpdates', () => {
     expect(info.url).toContain('/releases/');
   });
 
-  it('falls through to a commit compare when no release is newer', async () => {
+  it('reports up to date on the latest release without nagging about main commits', async () => {
+    const info = await checkForUpdates({
+      ...BASE,
+      currentVersion: '0.3.0', // running the latest packaged release
+      fetcher: fakeFetch({
+        '/releases/latest': {
+          status: 200,
+          body: { tag_name: 'v0.3.0', html_url: 'https://github.com/renaobrien/reamp/releases/tag/v0.3.0' },
+        },
+        // main has since moved on (e.g. a merge commit); it must be ignored
+        '/commits/main': { status: 200, body: { sha: 'ffffffffffffffff' } },
+      }),
+    });
+    expect(info.status).toBe('up-to-date');
+    expect(info.kind).toBeUndefined();
+  });
+
+  it('falls through to a commit compare when no release exists', async () => {
     const info = await checkForUpdates({
       ...BASE,
       fetcher: fakeFetch({

@@ -78,20 +78,31 @@ export async function checkForUpdates(options: UpdateCheckOptions): Promise<Upda
         assets?: ReleaseAsset[];
       };
       const tag = release.tag_name ?? '';
-      if (tag.length > 0 && compareVersions(tag, currentVersion) > 0) {
-        return {
-          status: 'update-available',
-          current,
-          latest: tag,
-          kind: 'release',
-          detail: 'A packaged release is ready.',
-          url: release.html_url ?? `https://github.com/${repo}/releases/latest`,
-          downloadUrl: pickMacZipAsset(release.assets ?? [])?.browser_download_url,
-        };
+      if (tag.length > 0) {
+        const releaseUrl = release.html_url ?? `https://github.com/${repo}/releases/latest`;
+        if (compareVersions(tag, currentVersion) > 0) {
+          return {
+            status: 'update-available',
+            current,
+            latest: tag,
+            kind: 'release',
+            detail: 'A packaged release is ready.',
+            url: releaseUrl,
+            downloadUrl: pickMacZipAsset(release.assets ?? [])?.browser_download_url,
+          };
+        }
+        // A packaged release exists and this build is already at or past
+        // it: that is the authoritative answer. Stop here rather than fall
+        // through to the main-commit comparison below, which only makes
+        // sense for source checkouts with no release. Otherwise every merge
+        // to main (a new merge commit that differs from the commit this
+        // release was built from) would nag a released build to "git pull".
+        return { status: 'up-to-date', current, url: releaseUrl };
       }
     }
 
-    // From-source installs: compare the build commit against main.
+    // No packaged release to compare against: for a source checkout, fall
+    // back to comparing the build commit against main.
     if (currentCommit === 'dev' || currentCommit.length === 0) {
       return {
         status: 'unknown',
