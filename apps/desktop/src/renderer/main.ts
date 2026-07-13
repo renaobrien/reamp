@@ -142,7 +142,9 @@ $('eq-notice-close').addEventListener('click', () => eqDialog.close());
 // ---- player styles: Sharp (vector, lossless) and Classic (.wsz bitmaps) -----
 
 const sharp = new SharpPlayer({ host: $('stage'), bridge: window.reamp, send });
-let playerStyle: 'sharp' | 'classic' = 'sharp';
+// The OG is Webamp (real Winamp): it is the default face. Sharp stays as
+// an opt-in via the deck toggle for anyone who wants a lossless vector one.
+let playerStyle: 'sharp' | 'classic' = 'classic';
 
 function applyPlayerStyle(style: 'sharp' | 'classic', persist = true): void {
   playerStyle = style;
@@ -260,9 +262,9 @@ import('./webamp-host.js')
     hookWebampTransport();
     const settings = await window.reamp.getSettings().catch(() => ({}) as PersistedSettings);
     eqNoticeDismissed = settings.eqNoticeDismissed === true;
-    // Webamp's root div exists only now; re-assert the active style so a
-    // sharp boot hides it and a classic boot shows it
-    applyPlayerStyle(settings.playerStyle === 'classic' ? 'classic' : 'sharp', false);
+    // Webamp's root div exists only now; re-assert the active style. The
+    // OG Webamp face is the default; only an explicit saved 'sharp' opts out.
+    applyPlayerStyle(settings.playerStyle === 'sharp' ? 'sharp' : 'classic', false);
     applyZoom(settings.webampZoom ?? 2);
     // restore the persisted skin once Webamp is up
     const saved = await window.reamp.getSavedSkin();
