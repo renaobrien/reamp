@@ -16,6 +16,7 @@ import { ClassicVis } from './classic-vis.js';
 import { installDemoBridge } from './demo-bridge.js';
 import type { MilkdropEngine } from './milkdrop-engine.js';
 import { FeatureExtractor, createScenes, type SpectralFeatures } from './scenes.js';
+import { SharpPlayer } from './sharp-player.js';
 
 declare global {
   interface Window {
@@ -138,13 +139,37 @@ eqDialog.addEventListener('close', () => {
 });
 $('eq-notice-close').addEventListener('click', () => eqDialog.close());
 
+// ---- player styles: Sharp (vector, lossless) and Classic (.wsz bitmaps) -----
+
+const sharp = new SharpPlayer({ host: $('stage'), bridge: window.reamp, send });
+let playerStyle: 'sharp' | 'classic' = 'sharp';
+
+function applyPlayerStyle(style: 'sharp' | 'classic', persist = true): void {
+  playerStyle = style;
+  sharp.root.hidden = style !== 'sharp';
+  const webampEl = document.getElementById('webamp');
+  if (webampEl !== null) webampEl.style.display = style === 'classic' ? '' : 'none';
+  $('style-toggle').textContent = style === 'sharp' ? 'Classic' : 'Sharp';
+  if (persist) void window.reamp.saveSettings({ playerStyle: style }).catch(() => {});
+  applyZoom(currentZoom);
+}
+
 let currentZoom: number | 'fit' = 2;
 let lastAppliedScale = 2;
 
 function applyZoom(zoom: number | 'fit'): void {
+  currentZoom = zoom;
+  if (playerStyle === 'sharp') {
+    let scale = zoom === 'fit' ? sharpFitScale() : zoom;
+    scale = Math.min(8, Math.max(0.5, scale));
+    sharp.setScale(scale);
+    lastAppliedScale = scale;
+    $('zoom-label').textContent =
+      zoom === 'fit' ? `fit ${Math.round(scale * 100)}%` : `${Math.round(scale * 100)}%`;
+    return;
+  }
   const webampEl = document.getElementById('webamp');
   if (webampEl === null) return;
-  currentZoom = zoom;
   webampEl.style.transform = '';
   // Webamp lays its windows out in viewport pixels inside a zero-size
   // root div, so a percentage transform origin resolves to 0,0 and a
@@ -202,6 +227,12 @@ function applyZoom(zoom: number | 'fit'): void {
   webampEl.style.transform = `scale(${scale})`;
 }
 
+/** Largest Sharp scale that leaves margins and room for the deck. */
+function sharpFitScale(): number {
+  const natural = sharp.naturalSize();
+  return Math.min((window.innerWidth - 96) / natural.w, (window.innerHeight * 0.72) / natural.h);
+}
+
 function setZoomTo(zoom: number | 'fit'): void {
   applyZoom(zoom);
   void window.reamp.saveSettings({ webampZoom: zoom }).catch(() => {});
@@ -229,6 +260,9 @@ import('./webamp-host.js')
     hookWebampTransport();
     const settings = await window.reamp.getSettings().catch(() => ({}) as PersistedSettings);
     eqNoticeDismissed = settings.eqNoticeDismissed === true;
+    // Webamp's root div exists only now; re-assert the active style so a
+    // sharp boot hides it and a classic boot shows it
+    applyPlayerStyle(settings.playerStyle === 'classic' ? 'classic' : 'sharp', false);
     applyZoom(settings.webampZoom ?? 2);
     // restore the persisted skin once Webamp is up
     const saved = await window.reamp.getSavedSkin();
@@ -249,6 +283,7 @@ import('./skin-drop.js')
   .then(({ installSkinDrop }) => {
     installSkinDrop(document.body, {
       onSkin: (url, name, data) => {
+        applyPlayerStyle('classic'); // a dropped .wsz means: show me the skin
         applySkinUrl(url);
         setStatus(`skin: ${name}`);
         void window.reamp.saveSkin(data).catch(() => {});
@@ -543,6 +578,9 @@ $('zoom-in').addEventListener('click', () => zoomStep(0.25));
 $('zoom-out').addEventListener('click', () => zoomStep(-0.25));
 $('zoom-label').addEventListener('click', () => setZoomTo(1));
 $('zoom-fit').addEventListener('click', () => setZoomTo('fit'));
+$('style-toggle').addEventListener('click', () => {
+  applyPlayerStyle(playerStyle === 'sharp' ? 'classic' : 'sharp');
+});
 $('deck-toggle').addEventListener('click', () => {
   const hidden = document.body.classList.toggle('deck-hidden');
   $('deck-toggle').textContent = hidden ? 'deck ▴' : 'deck ▾';
@@ -597,7 +635,13 @@ async function showPlaylists(): Promise<void> {
     // Spotify desktop-control mode lands here by design: its scripting
     // interface cannot enumerate playlists. Honest message, not a spinner.
     renderItems(
-      [{ label: String(err instanceof Error ? err.message : err) }],
+      [
+        { label: String(err instanceof Error ? err.message : err) },
+        {
+          label:
+            'Spotify does not let desktop apps list playlists. Pick music in Spotify itself and Reamp follows it. Apple Music playlists browse right here, and in-app Spotify browsing arrives with API mode.',
+        },
+      ],
       'Playlists',
       false,
     );

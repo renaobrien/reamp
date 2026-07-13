@@ -104,6 +104,8 @@ export interface PersistedSettings {
   stageMode?: string;
   /** Webamp scale factor, or 'fit' for the largest size the window allows. */
   webampZoom?: number | 'fit';
+  /** Sharp is the vector face; classic is real .wsz Winamp skins. */
+  playerStyle?: 'sharp' | 'classic';
   deckHidden?: boolean;
   /** "Don't show again" on the EQ explainer dialog. */
   eqNoticeDismissed?: boolean;

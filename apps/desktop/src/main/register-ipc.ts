@@ -20,11 +20,13 @@ export function registerIpc(host: AdapterHost, settings: SettingsStore): void {
   ipcMain.handle(IPC.getPlaylists, () => host.getPlaylists());
   ipcMain.handle(IPC.getPlaylistTracks, (_e, id: string) => host.getPlaylistTracks(id));
   ipcMain.handle(IPC.getSettings, () => {
-    const { source, stageMode, webampZoom, deckHidden, eqNoticeDismissed } = settings.load();
+    const { source, stageMode, webampZoom, playerStyle, deckHidden, eqNoticeDismissed } =
+      settings.load();
     return {
       source,
       stageMode,
       webampZoom,
+      playerStyle,
       deckHidden,
       eqNoticeDismissed,
     } satisfies PersistedSettings;
