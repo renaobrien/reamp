@@ -59,6 +59,8 @@ jobs:
           fail_on_unmatched_files: true
           generate_release_notes: true
           body: |
-            Unsigned build: right-click Reamp.app and choose Open on first launch.
+            First launch: right-click Reamp.app and choose Open (ad-hoc signed, not notarized).
+            If macOS still calls it "damaged", clear the download flag in Terminal, then reopen:
+              xattr -cr /Applications/Reamp.app
             Apple Silicon Macs want the arm64 files; Intel Macs the plain ones.
             ${{ steps.sidecar.outcome == 'success' && 'The audio capture helper is bundled: visuals follow your real music after the one-time Screen Recording permission.' || 'This build ships without the capture helper (visuals run on demo audio until you build it from source).' }}
